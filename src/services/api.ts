@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.0.103:3000/api/v1';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.0.103:5000/api/v1';
 const REQUEST_TIMEOUT = 10000; // 10 seconds
 
 export class ApiError extends Error {
@@ -117,9 +117,11 @@ export const api = {
     request<T>(endpoint, { ...options, method: 'DELETE' }),
 
   healthCheck: async (): Promise<{ status: string }> => {
-    console.log(`[API] Health check URL: ${API_BASE_URL}/health`);
+    const healthUrl = `${API_BASE_URL.replace('/api/v1', '')}/health`;
+    console.log(`[API] Health check URL: ${healthUrl}`);
     try {
-      const result = await api.get<{ status: string }>('/health');
+      const response = await fetch(healthUrl);
+      const result = await response.json();
       console.log(`[API] Health check result:`, result);
       return result;
     } catch (error) {
