@@ -1,10 +1,10 @@
 import React from 'react';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
-import SignupScreen from '../app/signup';
-import { AuthProvider } from '../app/contexts/AuthContext';
-import { storage } from '../app/services/storage';
+import SignupScreen from '../../app/signup';
+import { AuthProvider } from '../../app/contexts/AuthContext';
+import { storage } from '../../src/services/storage';
 
-jest.mock('../app/services/storage', () => ({
+jest.mock('../../src/services/storage', () => ({
   storage: {
     setTokens: jest.fn().mockResolvedValue(undefined),
     setUser: jest.fn().mockResolvedValue(undefined),
@@ -22,8 +22,8 @@ jest.mock('expo-router', () => ({
 
 const mockLogin = jest.fn().mockResolvedValue({ success: true });
 
-jest.mock('../app/contexts/AuthContext', () => {
-  const actual = jest.requireActual('../app/contexts/AuthContext');
+jest.mock('../../app/contexts/AuthContext', () => {
+  const actual = jest.requireActual('../../app/contexts/AuthContext');
   return {
     ...actual,
     useAuth: () => ({

@@ -1,8 +1,8 @@
-import { createUser, handleAuthError, RegisterPayload } from '../app/services/auth';
-import { api } from '../app/services/api';
+import { createUser, handleAuthError, RegisterPayload } from '../../src/services/auth';
+import { api } from '../../src/services/api';
 
-jest.mock('../app/services/api');
-jest.mock('../app/services/storage', () => ({
+jest.mock('../../src/services/api');
+jest.mock('../../src/services/storage', () => ({
   storage: {
     setTokens: jest.fn().mockResolvedValue(undefined),
     setUser: jest.fn().mockResolvedValue(undefined),

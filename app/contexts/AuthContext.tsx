@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { storage, UserData } from '../services/storage';
-import { createUser, RegisterPayload, handleAuthError } from '../services/auth';
+import { storage, UserData } from '../../src/services/storage';
+import { createUser, RegisterPayload, handleAuthError } from '../../src/services/auth';
 
 export interface AuthState {
   isLoggedIn: boolean;
