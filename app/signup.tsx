@@ -56,6 +56,7 @@ export default function SignupScreen() {
   };
 
   const handleSignup = async () => {
+    console.log("Register pressed");
     setGeneralError('');
     setErrors({});
     
