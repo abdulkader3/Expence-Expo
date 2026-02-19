@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, Image, ScrollView, useColorScheme } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Image, ScrollView, useColorScheme, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from './AuthContext';
@@ -17,6 +17,7 @@ export default function HomeScreen() {
   const colorScheme = useColorScheme();
   const [selectedUser, setSelectedUser] = useState('jordan');
   const [currentTime, setCurrentTime] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const isDark = colorScheme === 'dark';
 
@@ -32,8 +33,20 @@ export default function HomeScreen() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleGetStarted = () => {
-    router.push('/budget');
+  const handleGetStarted = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('http://192.168.0.103:5000/health');
+      const data = await response.json();
+      console.log('Health response:', data);
+      Alert.alert('Backend Connected Successfully');
+      router.push('/budget');
+    } catch (error) {
+      console.error('Health check error:', error);
+      Alert.alert('Backend Connection Failed');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleLogout = () => {
@@ -134,16 +147,24 @@ export default function HomeScreen() {
       </ScrollView>
 
       <View style={styles.footer as any}>
-        <Pressable style={styles.button as any} onPress={handleGetStarted}>
-          <Text style={[styles.buttonText, { color: colors.text }] as any}>Get Started</Text>
+        <Pressable style={styles.button} onPress={handleGetStarted} disabled={isLoading}>
+          <Text style={[styles.buttonText, { color: colors.text }] as any}>{isLoading ? 'Connecting...' : 'Get Started'}</Text>
           <Text style={[styles.buttonArrow, { color: colors.text }] as any}>→</Text>
         </Pressable>
         <Text style={[styles.footerText, { color: colors.textMuted }] as any}>
-          Switching accounts?{' '}
-          <Pressable onPress={handleLogout}>
-            <Text style={[styles.linkText, { color: colors.link }] as any}>Log out</Text>
+          Already have an account?{' '}
+          <Pressable onPress={() => router.push('/login')}>
+            <Text style={[styles.linkText, { color: colors.link }] as any}>Log in</Text>
           </Pressable>
         </Text>
+        <View style={{ display: 'none' } as any}>
+          <Text style={[styles.footerText, { color: colors.textMuted }] as any}>
+            Switching accounts?{' '}
+            <Pressable onPress={handleLogout}>
+              <Text style={[styles.linkText, { color: colors.link }] as any}>Log out</Text>
+            </Pressable>
+          </Text>
+        </View>
       </View>
     </SafeAreaView>
   );

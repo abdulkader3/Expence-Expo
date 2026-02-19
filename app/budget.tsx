@@ -80,7 +80,7 @@ export default function BudgetScreen() {
           <MaterialIcons name="receipt-long" size={28} color={colors.tabInactive} />
           <Text style={[styles.navLabel, { color: colors.tabInactive }]}>Activity</Text>
         </Pressable>
-        <Pressable style={styles.navItem}>
+        <Pressable style={styles.navItem} onPress={() => router.push('/partner-ledger')}>
           <MaterialIcons name="person" size={28} color={colors.tabInactive} />
           <Text style={[styles.navLabel, { color: colors.tabInactive }]}>Profile</Text>
         </Pressable>
