@@ -61,7 +61,7 @@ export default function AddContributionScreen() {
   };
 
   const handleSave = () => {
-    router.back();
+    router.replace('/leaderboard');
   };
 
   const KeypadButton = ({ value, onPress }: { value: string; onPress: (key: string) => void }) => {
