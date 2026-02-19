@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, Image, ScrollView, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { useAuth } from './AuthContext';
 
 const users = [
@@ -11,7 +12,8 @@ const users = [
 ];
 
 export default function HomeScreen() {
-  const { login, logout } = useAuth();
+  const { logout } = useAuth();
+  const router = useRouter();
   const colorScheme = useColorScheme();
   const [selectedUser, setSelectedUser] = useState('jordan');
   const [currentTime, setCurrentTime] = useState('');
@@ -31,7 +33,7 @@ export default function HomeScreen() {
   }, []);
 
   const handleGetStarted = () => {
-    login();
+    router.push('/budget');
   };
 
   const handleLogout = () => {
