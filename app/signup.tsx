@@ -12,6 +12,8 @@ export default function SignupScreen() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
+  const [company, setCompany] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -89,6 +91,8 @@ export default function SignupScreen() {
         name: fullName.trim(),
         email: email.trim().toLowerCase(),
         password,
+        phone: phone.trim() || undefined,
+        company: company.trim() || undefined,
       };
       
       console.log("[SCREEN] Calling login with payload:", payload);
@@ -226,6 +230,39 @@ export default function SignupScreen() {
                     </Pressable>
                   </View>
                   {errors.password ? <Text style={[styles.fieldError, { color: colors.error }]}>{errors.password}</Text> : null}
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.label, { color: colors.text }]}>Phone (Optional)</Text>
+                  <View style={[styles.inputContainer, { backgroundColor: colors.inputBg }]}>
+                    <Text style={styles.inputIcon}>📱</Text>
+                    <TextInput
+                      style={[styles.input, { color: colors.text }]}
+                      placeholder="Enter phone number"
+                      placeholderTextColor={colors.textMuted}
+                      value={phone}
+                      onChangeText={setPhone}
+                      keyboardType="phone-pad"
+                      autoComplete="tel"
+                      editable={!isLoading}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.label, { color: colors.text }]}>Company (Optional)</Text>
+                  <View style={[styles.inputContainer, { backgroundColor: colors.inputBg }]}>
+                    <Text style={styles.inputIcon}>🏢</Text>
+                    <TextInput
+                      style={[styles.input, { color: colors.text }]}
+                      placeholder="Company name"
+                      placeholderTextColor={colors.textMuted}
+                      value={company}
+                      onChangeText={setCompany}
+                      autoCapitalize="words"
+                      editable={!isLoading}
+                    />
+                  </View>
                 </View>
 
                 <View style={styles.termsRow}>
