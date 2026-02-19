@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, Image, ScrollView, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from './AuthContext';
+import { useAuth } from './contexts/AuthContext';
 
 const users = [
   { id: 'alex', name: 'Alex', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAOg65orNmJuNBu8uIlUkuR3n3Pq-IDG_2SXuVvk_Syq81n2dEsgBUpIZYGheTv7a90DRRMDO-mUvX5CWm_xnM6T-GDkLZkmQqr2btNHHga39hke2amvAAAlfcAvAlKKaja3HytsLw_UipxikiYWK-KSVaBgck6ZX0w9WkiKm6gwfsPYSwEfnWjdpBP1o4PmWlXMCYrFk_RdoqZuZfdhDuTHp6nPnGje-HCy29bdR9koU9QVDTc1cKVYaWKw6scJEP0zHQZIENFXd2F', bgColor: '#ffe8f2' },
@@ -10,7 +10,7 @@ const users = [
   { id: 'sam', name: 'Sam', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB7c0Dqmetp6nmg78GdOih_xub1NMwImauY15zSJqu5fRFhx9arKIaXh914pssReQtNZTEe3cG54apXVUfKV13yVZGqmxY-XNVZVQWpw97G0VyT7Qn5H3PG7NbJmBv2JY-hIqXTdEQCv1AS8btYx-K2L9Xi97Xy-QCPYqNQTJberPD2d4I3fiFgQRY0D37CZjNWhS-OlL2WTAlOW-O300e7gj8rkGo2-l__hdf_qCv4q97vtjhtOYNSK_Nn8b0fIAWYRZjzHYdcqhUY', bgColor: '#fffadd' },
 ];
 
-export default function HomeScreen() {
+export default function WelcomeScreen() {
   const { login, logout } = useAuth();
   const colorScheme = useColorScheme();
   const [selectedUser, setSelectedUser] = useState('jordan');
@@ -44,6 +44,8 @@ export default function HomeScreen() {
     textSecondary: isDark ? '#a3a3a3' : '#6b6b6b',
     textMuted: isDark ? '#525252' : '#a3a3a3',
     primary: '#5bee2b',
+    primaryDark: '#4ec925',
+    cardBg: isDark ? '#1a2c15' : '#ffffff',
     badgeBg: isDark ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.9)',
     signalDot: isDark ? '#ffffff' : '#1a1a1a',
     link: isDark ? '#d4d4d4' : '#525252',
@@ -145,42 +147,230 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  statusBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingTop: 8, paddingBottom: 4 },
-  time: { fontSize: 14, fontWeight: '600' },
-  statusIcons: { flexDirection: 'row', gap: 4 },
-  signalDot: { width: 12, height: 12, borderRadius: 6 },
-  scrollView: { flex: 1 },
-  header: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 8, alignItems: 'center' },
-  brandText: { fontSize: 12, fontWeight: '700', letterSpacing: 2, textTransform: 'uppercase' },
-  heroSection: { paddingHorizontal: 16, marginBottom: 16, position: 'relative' },
-  blobYellow: { position: 'absolute', top: 20, left: 30, width: 96, height: 96, borderRadius: 48, backgroundColor: '#fffadd', opacity: 0.6 },
-  blobGreen: { position: 'absolute', bottom: 30, right: 30, width: 128, height: 128, borderRadius: 64, backgroundColor: 'rgba(91, 238, 43, 0.2)', opacity: 0.6 },
-  heroImageContainer: { width: '100%', aspectRatio: 4 / 3, borderRadius: 24, overflow: 'hidden', position: 'relative' },
-  heroImage: { width: '100%', height: '100%' },
-  heroBadge: { position: 'absolute', bottom: 16, left: 16, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  heroBadgeIcon: { fontSize: 14 },
-  heroBadgeText: { fontSize: 12, fontWeight: '700' },
-  content: { paddingHorizontal: 24, paddingVertical: 24, alignItems: 'center' },
-  title: { fontSize: 30, fontWeight: '800', textAlign: 'center', lineHeight: 38, marginBottom: 12 },
-  titleHighlight: { fontWeight: '800' },
-  subtitle: { fontSize: 16, fontWeight: '500', textAlign: 'center', lineHeight: 24, maxWidth: 280 },
-  avatarSection: { paddingHorizontal: 16, paddingBottom: 24 },
-  avatarRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-end', gap: 16, height: 140 },
-  avatarButton: { alignItems: 'center', gap: 12 },
-  avatarWrapper: { width: 64, height: 64, borderRadius: 32, borderWidth: 4, borderColor: 'transparent', overflow: 'hidden' },
-  avatarWrapperSelected: { width: 80, height: 80, borderRadius: 40, borderWidth: 6, borderColor: '#5bee2b' },
-  avatar: { width: '100%', height: '100%' },
-  avatarName: { fontSize: 14, fontWeight: '700' },
-  avatarNameSelected: { fontSize: 16, fontWeight: '800' },
-  youBadge: { position: 'absolute', top: -20, left: '50%', marginLeft: -16, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 },
-  youBadgeText: { fontSize: 9, fontWeight: '700' },
-  checkBadge: { position: 'absolute', bottom: 0, right: 0, width: 24, height: 24, borderRadius: 12, backgroundColor: '#5bee2b', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#fff' },
-  checkIcon: { fontSize: 12, fontWeight: '700', color: '#1a1a1a' },
-  footer: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 32 },
-  button: { backgroundColor: '#5bee2b', height: 56, borderRadius: 24, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, shadowColor: '#5bee2b', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 30, elevation: 8 },
-  buttonText: { fontSize: 18, fontWeight: '700', color: '#1a1a1a' },
-  buttonArrow: { fontSize: 18, color: '#1a1a1a' },
-  footerText: { marginTop: 16, textAlign: 'center', fontSize: 12, fontWeight: '500' },
-  linkText: { textDecorationLine: 'underline', textDecorationColor: '#5bee2b' },
+  container: {
+    flex: 1,
+  },
+  statusBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  time: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  statusIcons: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  signalDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  header: {
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 8,
+    alignItems: 'center',
+  },
+  brandText: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+  heroSection: {
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    position: 'relative',
+  },
+  blobYellow: {
+    position: 'absolute',
+    top: 20,
+    left: 30,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: '#fffadd',
+    opacity: 0.6,
+  },
+  blobGreen: {
+    position: 'absolute',
+    bottom: 30,
+    right: 30,
+    width: 128,
+    height: 128,
+    borderRadius: 64,
+    backgroundColor: 'rgba(91, 238, 43, 0.2)',
+    opacity: 0.6,
+  },
+  heroImageContainer: {
+    width: '100%',
+    aspectRatio: 4 / 3,
+    borderRadius: 24,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+  },
+  heroBadge: {
+    position: 'absolute',
+    bottom: 16,
+    left: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  heroBadgeIcon: {
+    fontSize: 14,
+  },
+  heroBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  content: {
+    paddingHorizontal: 24,
+    paddingVertical: 24,
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 30,
+    fontWeight: '800',
+    textAlign: 'center',
+    lineHeight: 38,
+    marginBottom: 12,
+  },
+  titleHighlight: {
+    fontWeight: '800',
+  },
+  subtitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    textAlign: 'center',
+    lineHeight: 24,
+    maxWidth: 280,
+  },
+  avatarSection: {
+    paddingHorizontal: 16,
+    paddingBottom: 24,
+  },
+  avatarRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    gap: 16,
+    height: 140,
+  },
+  avatarButton: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  avatarWrapper: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 4,
+    borderColor: 'transparent',
+    overflow: 'hidden',
+  },
+  avatarWrapperSelected: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 6,
+    borderColor: '#5bee2b',
+  },
+  avatar: {
+    width: '100%',
+    height: '100%',
+  },
+  avatarName: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  avatarNameSelected: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  youBadge: {
+    position: 'absolute',
+    top: -20,
+    left: '50%',
+    marginLeft: -16,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  youBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+  },
+  checkBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#5bee2b',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  checkIcon: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1a1a1a',
+  },
+  footer: {
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 32,
+  },
+  button: {
+    backgroundColor: '#5bee2b',
+    height: 56,
+    borderRadius: 24,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    shadowColor: '#5bee2b',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 30,
+    elevation: 8,
+  },
+  buttonText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1a1a1a',
+  },
+  buttonArrow: {
+    fontSize: 18,
+    color: '#1a1a1a',
+  },
+  footerText: {
+    marginTop: 16,
+    textAlign: 'center',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  linkText: {
+    textDecorationLine: 'underline',
+    textDecorationColor: '#5bee2b',
+  },
 });
