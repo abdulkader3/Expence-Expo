@@ -105,13 +105,16 @@ export default function HomeScreen() {
                     user.bgColor ? { backgroundColor: user.bgColor } : undefined,
                   ] as any}
                 >
-                  <Image source={{ uri: user.avatar }} style={styles.avatar as any} />
-                  {user.id === 'jordan' && (
-                    <View style={styles.checkBadge as any}>
-                      <Text style={styles.checkIcon as any}>✓</Text>
-                    </View>
-                  )}
+                  <Image source={{ uri: user.avatar }} style={user.id === 'jordan' ? styles.avatarSelected as any : styles.avatar as any} />
                 </View>
+                {user.id === 'jordan' && (
+                  <View style={styles.avatarRing as any} />
+                )}
+                {user.id === 'jordan' && (
+                  <View style={styles.checkBadge as any}>
+                    <Text style={styles.checkIcon as any}>✓</Text>
+                  </View>
+                )}
                 {user.id === 'jordan' ? (
                   <Text style={[styles.avatarNameSelected, { color: colors.text }] as any}>{user.name}</Text>
                 ) : (
@@ -169,13 +172,15 @@ const styles = StyleSheet.create({
   avatarRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-end', gap: 16, height: 140 },
   avatarButton: { alignItems: 'center', gap: 12 },
   avatarWrapper: { width: 64, height: 64, borderRadius: 32, borderWidth: 4, borderColor: 'transparent', overflow: 'hidden' },
-  avatarWrapperSelected: { width: 80, height: 80, borderRadius: 40, borderWidth: 6, borderColor: '#5bee2b' },
-  avatar: { width: '100%', height: '100%' },
+  avatarWrapperSelected: { width: 80, height: 80, borderRadius: 40, overflow: 'hidden' },
+  avatarRing: { position: 'absolute', top: 0, left: 0, width: 80, height: 80, borderRadius: 40, borderWidth: 6, borderColor: '#5bee2b' },
+  avatar: { width: '100%', height: '100%', borderRadius: 32 },
+  avatarSelected: { width: '100%', height: '100%', borderRadius: 40 },
   avatarName: { fontSize: 14, fontWeight: '700' },
   avatarNameSelected: { fontSize: 16, fontWeight: '800' },
   youBadge: { position: 'absolute', top: -20, left: '50%', marginLeft: -16, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 },
   youBadgeText: { fontSize: 9, fontWeight: '700' },
-  checkBadge: { position: 'absolute', bottom: 0, right: 0, width: 24, height: 24, borderRadius: 12, backgroundColor: '#5bee2b', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#fff' },
+  checkBadge: { position: 'absolute', top: 56, right: 0, width: 24, height: 24, borderRadius: 12, backgroundColor: '#5bee2b', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#fff' },
   checkIcon: { fontSize: 12, fontWeight: '700', color: '#1a1a1a' },
   footer: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 32 },
   button: { backgroundColor: '#5bee2b', height: 56, borderRadius: 24, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, shadowColor: '#5bee2b', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 30, elevation: 8 },
