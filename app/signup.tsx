@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Pressable, TextInput, useColorScheme, KeyboardA
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from './contexts/AuthContext';
+import { api } from '../src/services/api';
 
 export default function SignupScreen() {
   const { login } = useAuth();
@@ -56,7 +57,10 @@ export default function SignupScreen() {
   };
 
   const handleSignup = async () => {
+    console.log("========== REGISTER DEBUG START ==========");
     console.log("Register pressed");
+    console.log("API Base URL:", 'http://192.168.0.103:3000/api/v1');
+    
     setGeneralError('');
     setErrors({});
     
@@ -69,18 +73,36 @@ export default function SignupScreen() {
       return;
     }
     
+    // Health check first
+    console.log("[SCREEN] Running health check...");
+    try {
+      const healthResult = await api.healthCheck();
+      console.log("[SCREEN] Health check result:", healthResult);
+    } catch (healthError) {
+      console.log("[SCREEN] Health check FAILED:", healthError);
+    }
+    
     setIsLoading(true);
     
     try {
-      const result = await login({
+      const payload = {
         name: fullName.trim(),
         email: email.trim().toLowerCase(),
         password,
-      });
+      };
+      
+      console.log("[SCREEN] Calling login with payload:", payload);
+      
+      const result = await login(payload);
+      
+      console.log("[SCREEN] Login result:", result);
       
       if (result.success) {
+        console.log("[SCREEN] Registration SUCCESS, navigating to home");
         router.replace('/');
       } else {
+        console.log("[SCREEN] Registration FAILED:", result.error);
+        
         if (result.fieldErrors && result.fieldErrors.length > 0) {
           const fieldErrorsMap: Record<string, string> = {};
           result.fieldErrors.forEach(err => {
@@ -92,15 +114,19 @@ export default function SignupScreen() {
         if (result.error) {
           if (result.error.includes('Email already registered')) {
             setGeneralError(result.error);
+          } else if (result.error.includes('timed out')) {
+            setGeneralError('Request timed out. Please check your network and try again.');
           } else {
             setGeneralError(result.error);
           }
         }
       }
-    } catch {
+    } catch (error) {
+      console.log("[SCREEN] Registration CATCH ERROR:", error);
       setGeneralError('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
+      console.log("========== REGISTER DEBUG END ==========");
     }
   };
 

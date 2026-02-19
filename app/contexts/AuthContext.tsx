@@ -44,17 +44,29 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (payload: RegisterPayload) => {
     try {
+      console.log("[CONTEXT] Calling createUser...");
       const result = await createUser(payload);
+      console.log("[CONTEXT] createUser success:", result);
       setUser(result.user);
       setIsLoggedIn(true);
       return { success: true };
     } catch (error) {
+      console.log("[CONTEXT] createUser error:", error);
       const handled = handleAuthError(error);
+      console.log("[CONTEXT] handled error:", handled);
       
       if (handled.isDuplicateEmail) {
         return { 
           success: false, 
           error: 'Email already registered — try login' 
+        };
+      }
+      
+      if (handled.isTimeout) {
+        return {
+          success: false,
+          error: 'Request timed out. Please check your network connection.',
+          fieldErrors: [],
         };
       }
       

@@ -37,7 +37,11 @@ function parseValidationErrors(data: Record<string, unknown>): ValidationError[]
 }
 
 export async function createUser(payload: RegisterPayload): Promise<RegisterResponse> {
+  console.log('[AUTH] REGISTER PAYLOAD:', JSON.stringify(payload, null, 2));
+  
   const response = await api.post<{ data: RegisterResponse }>('/auth/register', payload);
+  
+  console.log('[AUTH] REGISTER RESPONSE:', response);
   
   const { data } = response;
   await storage.setTokens(data.tokens);
@@ -50,15 +54,24 @@ export function handleAuthError(error: unknown): {
   message: string;
   isDuplicateEmail: boolean;
   isRateLimited: boolean;
+  isTimeout: boolean;
   fieldErrors: ValidationError[];
 } {
+  console.log('[AUTH] REGISTER ERROR FULL:', error);
+  
   if (error instanceof ApiError) {
+    console.log('[AUTH] ERROR MESSAGE:', error.message);
+    console.log('[AUTH] ERROR STATUS:', error.status);
+    console.log('[AUTH] ERROR DATA:', error.data);
+    console.log('[AUTH] ERROR IS TIMEOUT:', error.isTimeout);
+    
     const fieldErrors = error.status === 400 ? parseValidationErrors(error.data || {}) : [];
     
     return {
       message: error.message,
       isDuplicateEmail: error.status === 409,
       isRateLimited: error.status === 429,
+      isTimeout: error.isTimeout || false,
       fieldErrors,
     };
   }
@@ -67,6 +80,7 @@ export function handleAuthError(error: unknown): {
     message: error instanceof Error ? error.message : 'An unexpected error occurred',
     isDuplicateEmail: false,
     isRateLimited: false,
+    isTimeout: false,
     fieldErrors: [],
   };
 }

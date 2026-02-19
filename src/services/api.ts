@@ -1,11 +1,13 @@
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.0.103:3000/api/v1';
+const REQUEST_TIMEOUT = 10000; // 10 seconds
 
 export class ApiError extends Error {
   constructor(
     message: string,
     public status: number,
     public code?: string,
-    public data?: Record<string, unknown>
+    public data?: Record<string, unknown>,
+    public isTimeout?: boolean
   ) {
     super(message);
     this.name = 'ApiError';
@@ -33,19 +35,32 @@ async function request<T>(
     ...fetchOptions.headers,
   };
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+
   try {
+    console.log(`[API] ${fetchOptions.method || 'GET'} ${url}`);
+    console.log(`[API] Request body:`, fetchOptions.body);
+
     const response = await fetch(url, {
       ...fetchOptions,
       headers,
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
+
+    console.log(`[API] Response status:`, response.status);
 
     const contentType = response.headers.get('content-type');
     let data: unknown;
 
     if (contentType?.includes('application/json')) {
       data = await response.json();
+      console.log(`[API] Response data:`, data);
     } else {
       data = await response.text();
+      console.log(`[API] Response text:`, data);
     }
 
     if (!response.ok) {
@@ -62,6 +77,14 @@ async function request<T>(
 
     return data as T;
   } catch (error) {
+    clearTimeout(timeoutId);
+    
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.log(`[API] Request timed out after ${REQUEST_TIMEOUT}ms`);
+      throw new ApiError('Request timed out', 0, undefined, {}, true);
+    }
+    
+    console.log(`[API] Error:`, error);
     if (error instanceof ApiError) {
       throw error;
     }
@@ -92,4 +115,16 @@ export const api = {
 
   delete: <T>(endpoint: string, options?: RequestOptions) =>
     request<T>(endpoint, { ...options, method: 'DELETE' }),
+
+  healthCheck: async (): Promise<{ status: string }> => {
+    console.log(`[API] Health check URL: ${API_BASE_URL}/health`);
+    try {
+      const result = await api.get<{ status: string }>('/health');
+      console.log(`[API] Health check result:`, result);
+      return result;
+    } catch (error) {
+      console.log(`[API] Health check error:`, error);
+      throw error;
+    }
+  },
 };
