@@ -1,21 +1,25 @@
 import { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, Image, useColorScheme, Animated, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, Image, useColorScheme, Animated, Keyboard, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSaveTrigger } from '@/src/contexts/SaveTriggerContext';
+import { getPartners, Partner } from '@/src/services/partners';
+import { getCurrentUser } from '@/src/services/auth';
+import { createContribution } from '@/src/services/partners';
 
-const contributors = [
-  { id: 'you', name: 'You', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBbY0z9rl86XH9Y5Q2itlOpqe--7tWEDIC_g_6OHi2kTQJUSgnXEnxPEWo4pc5ecK0RMJiRgYJhoolHJO_VBYR5MV86Vf31FyxjNMTVtbUc0d4psmr2_1wpK3HIqW4xnYN_gmWCWjCJ8VdKjmLESNfmDI2rgkeGPG9xp4_MTWOz8tw66ufSUB2nAKrPPctD-1vFqhP6zaCJVXiDLhHtnHNYkGs44xy7tfKWfwt6f1JFFZBJ-QYfu2lNlk1zCvSbjhUqmnryFyjZhqu4' },
-  { id: 'alex', name: 'Alex', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA5DOTg9KZVC6btp_LiqakSrf2anLcM2eVnpWmq40TVqVZeTFTq0MHn7OyDNX5AgzV24Li7QHR3TEFtBCBSbtualILvCqWlBN9tfA4VDeIUnmNI1i0ue8kQTJPJuY5G35tYbowTp2W9TNcyBxw2vBGC7C-lCc9B3xEiCtI873tAnVviDIzkp4IUqVC89LL9zF3wzbYbcyAKOrKF5477ljMNPddGVWNk51mZU79EUrQfdqlpR_7qfYhBiLEcXngfENBqFzM9sApPmJMc' },
-  { id: 'sam', name: 'Sam', avatar: null },
-];
+interface ContributorOption {
+  id: string;
+  name: string;
+  avatar: string | null;
+  isCurrentUser: boolean;
+}
 
-const categories = [
-  { id: 'equipment', name: 'Equipment', emoji: '💻' },
-  { id: 'marketing', name: 'Marketing', emoji: '🚀' },
-  { id: 'tools', name: 'Tools', emoji: '🔧' },
-];
+interface Category {
+  id: string;
+  name: string;
+  emoji: string;
+}
 
 export default function AddContributionScreen() {
   const colorScheme = useColorScheme();
@@ -24,14 +28,67 @@ export default function AddContributionScreen() {
   const scrollY = useRef(new Animated.Value(0)).current;
   const saveTriggerRef = useSaveTrigger();
 
+  const [contributors, setContributors] = useState<ContributorOption[]>([]);
+  const [loadingContributors, setLoadingContributors] = useState(true);
+  const [customCategories, setCustomCategories] = useState<Category[]>([]);
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryEmoji, setNewCategoryEmoji] = useState('📁');
+
+  const EMOJI_OPTIONS = ['📁', '💰', '✈️', '📦', '🎒', '💻', '🛒', '📱', '🎁', '🏠', '🚗', '🍔', '💡', '📢', '🔧', '📸'];
   const [amount, setAmount] = useState('0.00');
-  const [selectedContributor, setSelectedContributor] = useState('you');
+  const [selectedContributor, setSelectedContributor] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState('marketing');
   const [note, setNote] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const categories: Category[] = [...customCategories];
+
+  useEffect(() => {
+    loadContributors();
+  }, []);
 
   useEffect(() => {
     saveTriggerRef.current.triggerSave = handleSave;
   }, []);
+
+  const loadContributors = async () => {
+    try {
+      setLoadingContributors(true);
+      
+      const [user, partnersData] = await Promise.all([
+        getCurrentUser(),
+        getPartners({ sort_by: 'name' })
+      ]);
+
+      const currentUserOption: ContributorOption = {
+        id: user.id,
+        name: user.name,
+        avatar: user.avatar_url || null,
+        isCurrentUser: true,
+      };
+
+      const partnerOptions: ContributorOption[] = partnersData.data
+        .filter((p: Partner) => p.id !== user.id)
+        .map((p: Partner) => ({
+          id: p.id,
+          name: p.name,
+          avatar: p.avatar_url || null,
+          isCurrentUser: false,
+        }));
+
+      const allContributors = [currentUserOption, ...partnerOptions];
+      setContributors(allContributors);
+      
+      if (allContributors.length > 0) {
+        setSelectedContributor(allContributors[0].id);
+      }
+    } catch (error) {
+      console.error('Error loading contributors:', error);
+    } finally {
+      setLoadingContributors(false);
+    }
+  };
 
   const colors = {
     background: isDark ? '#152210' : '#f6f8f6',
@@ -67,8 +124,44 @@ export default function AddContributionScreen() {
     }
   };
 
-  const handleSave = () => {
-    router.replace('/leaderboard');
+  const handleAddCategory = () => {
+    if (newCategoryName.trim()) {
+      const categoryId = newCategoryName.trim().toLowerCase().replace(/\s+/g, '-');
+      const newCategory: Category = {
+        id: categoryId,
+        name: newCategoryName.trim(),
+        emoji: newCategoryEmoji,
+      };
+      setCustomCategories([...customCategories, newCategory]);
+      setSelectedCategory(categoryId);
+      setNewCategoryName('');
+      setNewCategoryEmoji('📁');
+      setIsAddingCategory(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!selectedContributor || amount === '0' || amount === '0.00') {
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const amountValue = parseFloat(amount);
+      
+      await createContribution({
+        recorded_for: selectedContributor,
+        amount: amountValue,
+        category: selectedCategory,
+        context: note || undefined,
+      });
+      
+      router.replace('/leaderboard');
+    } catch (error) {
+      console.error('Error saving contribution:', error);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const KeypadButton = ({ value, onPress }: { value: string; onPress: (key: string) => void }) => {
@@ -156,31 +249,37 @@ export default function AddContributionScreen() {
               <Text style={[styles.labelText, { color: colors.text }]}>Contributor</Text>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.contributorsScroll}>
-              {contributors.map((contributor) => (
-                <Pressable
-                  key={contributor.id}
-                  style={[
-                    styles.contributorButton,
-                    selectedContributor === contributor.id && styles.contributorButtonSelected,
-                    { borderColor: selectedContributor === contributor.id ? colors.primary : 'transparent' },
-                  ]}
-                  onPress={() => setSelectedContributor(contributor.id)}
-                >
-                  <View style={[styles.contributorAvatar, { backgroundColor: isDark ? '#2a3f27' : '#e5e5e5' }]}>
-                    {contributor.avatar ? (
-                      <Image source={{ uri: contributor.avatar }} style={styles.avatarImage} />
-                    ) : (
-                      <MaterialIcons name="person" size={16} color={colors.textSecondary} />
-                    )}
-                  </View>
-                  <Text style={[
-                    styles.contributorName,
-                    { color: selectedContributor === contributor.id ? '#1a1a1a' : colors.textSecondary }
-                  ]}>
-                    {contributor.name}
-                  </Text>
-                </Pressable>
-              ))}
+              {loadingContributors ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                </View>
+              ) : (
+                contributors.map((contributor) => (
+                  <Pressable
+                    key={contributor.id}
+                    style={[
+                      styles.contributorButton,
+                      selectedContributor === contributor.id && styles.contributorButtonSelected,
+                      { borderColor: selectedContributor === contributor.id ? colors.primary : 'transparent' },
+                    ]}
+                    onPress={() => setSelectedContributor(contributor.id)}
+                  >
+                    <View style={[styles.contributorAvatar, { backgroundColor: isDark ? '#2a3f27' : '#e5e5e5' }]}>
+                      {contributor.avatar ? (
+                        <Image source={{ uri: contributor.avatar }} style={styles.avatarImage} />
+                      ) : (
+                        <MaterialIcons name="person" size={16} color={colors.textSecondary} />
+                      )}
+                    </View>
+                    <Text style={[
+                      styles.contributorName,
+                      { color: selectedContributor === contributor.id ? '#1a1a1a' : colors.textSecondary }
+                    ]}>
+                      {contributor.isCurrentUser ? 'You' : contributor.name}
+                    </Text>
+                  </Pressable>
+                ))
+              )}
             </ScrollView>
           </View>
 
@@ -209,9 +308,48 @@ export default function AddContributionScreen() {
                   </Text>
                 </Pressable>
               ))}
-              <Pressable style={[styles.addCategoryButton, { backgroundColor: colors.inputBg }]}>
-                <MaterialIcons name="add" size={20} color={colors.textSecondary} />
-              </Pressable>
+              {isAddingCategory ? (
+                <View style={styles.addCategoryContainer}>
+                  <View style={styles.emojiPickerRow}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.emojiPickerScroll}>
+                      {EMOJI_OPTIONS.map((emoji) => (
+                        <Pressable
+                          key={emoji}
+                          style={[
+                            styles.emojiOption,
+                            newCategoryEmoji === emoji && styles.emojiOptionSelected,
+                          ]}
+                          onPress={() => setNewCategoryEmoji(emoji)}
+                        >
+                          <Text style={styles.emojiOptionText}>{emoji}</Text>
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+                  </View>
+                  <View style={[styles.addCategoryInputRow, { backgroundColor: colors.inputBg }]}>
+                    <Text style={styles.addCategoryEmojiPreview}>{newCategoryEmoji}</Text>
+                    <TextInput
+                      style={[styles.addCategoryInput, { color: colors.text }]}
+                      placeholder="Category name"
+                      placeholderTextColor={colors.textSecondary}
+                      value={newCategoryName}
+                      onChangeText={setNewCategoryName}
+                      autoFocus
+                      onSubmitEditing={handleAddCategory}
+                    />
+                    <Pressable onPress={handleAddCategory} style={styles.addCategoryConfirm}>
+                      <MaterialIcons name="check" size={18} color={colors.primary} />
+                    </Pressable>
+                  </View>
+                </View>
+              ) : (
+                <Pressable 
+                  style={[styles.addCategoryButton, { backgroundColor: colors.inputBg }]}
+                  onPress={() => setIsAddingCategory(true)}
+                >
+                  <MaterialIcons name="add" size={20} color={colors.textSecondary} />
+                </Pressable>
+              )}
             </View>
           </View>
 
@@ -247,9 +385,19 @@ export default function AddContributionScreen() {
             Recorded under: <Text style={{ color: colors.text }}>Q3 Budget will increase their total</Text>
           </Text>
         </View>
-        <Pressable style={styles.saveButton} onPress={handleSave}>
-          <Text style={styles.saveButtonText}>Save Contribution</Text>
-          <MaterialIcons name="check" size={20} color="#1a1a1a" />
+        <Pressable 
+          style={[styles.saveButton, saving && styles.saveButtonDisabled]} 
+          onPress={handleSave}
+          disabled={saving}
+        >
+          {saving ? (
+            <ActivityIndicator size="small" color="#1a1a1a" />
+          ) : (
+            <>
+              <Text style={styles.saveButtonText}>Save Contribution</Text>
+              <MaterialIcons name="check" size={20} color="#1a1a1a" />
+            </>
+          )}
         </Pressable>
       </View>
     </SafeAreaView>
@@ -275,12 +423,23 @@ const styles = StyleSheet.create({
   contributorAvatar: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   avatarImage: { width: '100%', height: '100%' },
   contributorName: { fontSize: 14, fontWeight: '700' },
+  loadingContainer: { padding: 20, alignItems: 'center', justifyContent: 'center' },
   categoriesContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   categoryButton: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, gap: 8 },
   categoryButtonSelected: { borderWidth: 1, borderColor: '#5bee2b' },
   categoryEmoji: { fontSize: 16 },
   categoryName: { fontSize: 14, fontWeight: '600' },
   addCategoryButton: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  addCategoryContainer: { gap: 8 },
+  emojiPickerRow: { marginBottom: 8 },
+  emojiPickerScroll: { flexDirection: 'row' },
+  emojiOption: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 18, marginRight: 6 },
+  emojiOptionSelected: { backgroundColor: 'rgba(91,238,43,0.3)' },
+  emojiOptionText: { fontSize: 20 },
+  addCategoryInputRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, paddingLeft: 12, paddingRight: 4, gap: 8 },
+  addCategoryEmojiPreview: { fontSize: 20 },
+  addCategoryInput: { flex: 1, paddingVertical: 10, fontSize: 14, fontWeight: '600' },
+  addCategoryConfirm: { padding: 6 },
   noteInputContainer: { flexDirection: 'row', alignItems: 'center', borderRadius: 16, paddingLeft: 16 },
   noteIcon: { marginRight: 8 },
   noteInput: { flex: 1, paddingVertical: 14, paddingRight: 16, fontSize: 16, fontWeight: '500' },
@@ -291,5 +450,6 @@ const styles = StyleSheet.create({
   footerInfo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 12, opacity: 0.6 },
   footerInfoText: { fontSize: 12, fontWeight: '500' },
   saveButton: { backgroundColor: '#5bee2b', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, borderRadius: 16, gap: 8 },
+  saveButtonDisabled: { opacity: 0.6 },
   saveButtonText: { fontSize: 18, fontWeight: '700', color: '#1a1a1a' },
 });
