@@ -2,14 +2,18 @@ import { useRouter, usePathname } from 'expo-router';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useSaveTrigger } from '@/src/contexts/SaveTriggerContext';
 
 export default function BottomNav() {
   const router = useRouter();
   const pathname = usePathname();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const saveTriggerRef = useSaveTrigger();
 
-  if (pathname === '/' || pathname === '/index') {
+  const isAddContribution = pathname === '/add-contribution';
+
+  if (pathname === '/' || pathname === '/index' || pathname === '/login' || pathname === '/signup') {
     return null;
   }
 
@@ -25,6 +29,14 @@ export default function BottomNav() {
     if (path === '/budget' && pathname === '/') return true;
     if (path === pathname) return true;
     return false;
+  };
+
+  const handleFabPress = () => {
+    if (isAddContribution) {
+      saveTriggerRef.current.triggerSave();
+    } else {
+      router.push('/add-contribution');
+    }
   };
 
   return (
@@ -57,9 +69,9 @@ export default function BottomNav() {
         </Text>
       </Pressable>
 
-      <Pressable style={styles.fabContainer} onPress={() => router.push('/add-contribution')}>
+      <Pressable style={styles.fabContainer} onPress={handleFabPress}>
         <View style={[styles.fab, { backgroundColor: colors.text }]}>
-          <Ionicons name="add" size={32} color={colors.surface} />
+          <Ionicons name={isAddContribution ? 'checkmark' : 'add'} size={32} color={colors.surface} />
         </View>
       </Pressable>
 

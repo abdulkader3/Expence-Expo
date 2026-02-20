@@ -1,8 +1,9 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, Image, useColorScheme, Animated, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useSaveTrigger } from '@/src/contexts/SaveTriggerContext';
 
 const contributors = [
   { id: 'you', name: 'You', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBbY0z9rl86XH9Y5Q2itlOpqe--7tWEDIC_g_6OHi2kTQJUSgnXEnxPEWo4pc5ecK0RMJiRgYJhoolHJO_VBYR5MV86Vf31FyxjNMTVtbUc0d4psmr2_1wpK3HIqW4xnYN_gmWCWjCJ8VdKjmLESNfmDI2rgkeGPG9xp4_MTWOz8tw66ufSUB2nAKrPPctD-1vFqhP6zaCJVXiDLhHtnHNYkGs44xy7tfKWfwt6f1JFFZBJ-QYfu2lNlk1zCvSbjhUqmnryFyjZhqu4' },
@@ -21,11 +22,16 @@ export default function AddContributionScreen() {
   const router = useRouter();
   const isDark = colorScheme === 'dark';
   const scrollY = useRef(new Animated.Value(0)).current;
+  const saveTriggerRef = useSaveTrigger();
 
   const [amount, setAmount] = useState('0.00');
   const [selectedContributor, setSelectedContributor] = useState('you');
   const [selectedCategory, setSelectedCategory] = useState('marketing');
   const [note, setNote] = useState('');
+
+  useEffect(() => {
+    saveTriggerRef.current.triggerSave = handleSave;
+  }, []);
 
   const colors = {
     background: isDark ? '#152210' : '#f6f8f6',

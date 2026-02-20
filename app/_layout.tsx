@@ -2,6 +2,7 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import AuthProvider, { useAuth } from "./contexts/AuthContext";
+import { SaveTriggerProvider } from "../src/contexts/SaveTriggerContext";
 import BottomNav from "../components/BottomNav";
 
 function RootLayoutNav() {
@@ -32,7 +33,9 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <RootLayoutNav />
+        <SaveTriggerProvider>
+          <RootLayoutNav />
+        </SaveTriggerProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );
