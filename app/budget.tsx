@@ -62,10 +62,6 @@ export default function BudgetScreen() {
           </View>
         </Pressable>
       </View>
-
-      <Pressable style={[styles.fab, { backgroundColor: colors.fabBg }]} onPress={() => router.push('/add-contribution')}>
-        <MaterialIcons name="add" size={32} color={colors.fabIcon} />
-      </Pressable>
     </SafeAreaView>
   );
 }

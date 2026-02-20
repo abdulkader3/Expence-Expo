@@ -113,7 +113,7 @@ export default function PartnersScreen() {
             ? { backgroundColor: colors.primary, shadowColor: colors.primaryDark }
             : { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#f6f8f6', borderColor: colors.border, borderWidth: 1 },
         ]}
-        onPress={() => router.push('/partner-ledger')}
+        onPress={() => router.push('/transactions')}
       >
         <Text style={[styles.historyButtonText, !partner.isTopContributor && { color: colors.text }]}>See History</Text>
         <MaterialIcons name="arrow-forward" size={18} color={partner.isTopContributor ? '#131811' : colors.text} />

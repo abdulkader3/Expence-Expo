@@ -170,9 +170,14 @@ export default function LeaderboardScreen() {
       <View style={[styles.contributionsSection, { backgroundColor: colors.surface }]}>
         <View style={styles.contributionsHeader}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Top Contributors</Text>
-          <Pressable onPress={() => router.push('/partners')}>
-            <Text style={[styles.seeAllText, { color: colors.primary }]}>See All</Text>
-          </Pressable>
+          <View style={styles.headerButtons}>
+            <Pressable onPress={() => router.push('/transactions')} style={styles.activityButton}>
+              <Text style={[styles.activityText, { color: colors.primary }]}>Activity</Text>
+            </Pressable>
+            <Pressable onPress={() => router.push('/partners')}>
+              <Text style={[styles.seeAllText, { color: colors.primary }]}>See All</Text>
+            </Pressable>
+          </View>
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} style={styles.contributionsList}>
@@ -197,10 +202,6 @@ export default function LeaderboardScreen() {
 
         <View style={[styles.gradientOverlay, { backgroundColor: colors.surface }]} pointerEvents="none" />
       </View>
-
-      <Pressable style={styles.fab} onPress={() => router.push('/add-contribution')}>
-        <MaterialIcons name="add" size={32} color="#1a1a1a" />
-      </Pressable>
     </SafeAreaView>
   );
 }
@@ -248,6 +249,9 @@ const styles = StyleSheet.create({
   goalText: { fontSize: 12, fontWeight: '500', color: '#3b82f6', marginTop: 4 },
   contributionsSection: { flex: 1, borderTopLeftRadius: 40, borderTopRightRadius: 40, paddingTop: 24, marginTop: -8 },
   contributionsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, marginBottom: 8 },
+  headerButtons: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  activityButton: { paddingHorizontal: 12, paddingVertical: 6 },
+  activityText: { fontSize: 14, fontWeight: '700' },
   seeAllText: { fontSize: 14, fontWeight: '700' },
   contributionsList: { flex: 1, paddingHorizontal: 24, paddingBottom: 100 },
   contributionItem: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 12 },

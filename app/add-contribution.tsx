@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, Image, useColorScheme, KeyboardAvoidingView, Platform } from 'react-native';
+import { useState, useRef } from 'react';
+import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, Image, useColorScheme, Animated, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -20,6 +20,7 @@ export default function AddContributionScreen() {
   const colorScheme = useColorScheme();
   const router = useRouter();
   const isDark = colorScheme === 'dark';
+  const scrollY = useRef(new Animated.Value(0)).current;
 
   const [amount, setAmount] = useState('0.00');
   const [selectedContributor, setSelectedContributor] = useState('you');
@@ -81,6 +82,53 @@ export default function AddContributionScreen() {
     );
   };
 
+  const scrollDistance = 100;
+  
+  const amountContainerStyle = {
+    transform: [
+      { 
+        scale: scrollY.interpolate({
+          inputRange: [0, scrollDistance],
+          outputRange: [1, 0.5],
+          extrapolate: 'clamp',
+        }) 
+      },
+      {
+        translateX: scrollY.interpolate({
+          inputRange: [0, scrollDistance],
+          outputRange: [0, 140],
+          extrapolate: 'clamp',
+        }),
+      },
+      {
+        translateY: scrollY.interpolate({
+          inputRange: [0, scrollDistance],
+          outputRange: [0, 150],
+          extrapolate: 'clamp',
+        }),
+      },
+    ],
+  };
+
+  const plusSignStyle = {
+    opacity: scrollY.interpolate({
+      inputRange: [0, scrollDistance / 2, scrollDistance],
+      outputRange: [1, 0.5, 0],
+      extrapolate: 'clamp',
+    }),
+  };
+
+  const labelOpacity = scrollY.interpolate({
+    inputRange: [0, scrollDistance / 2, scrollDistance],
+    outputRange: [1, 0, 0],
+    extrapolate: 'clamp',
+  });
+
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    { useNativeDriver: false }
+  );
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={styles.handle} />
@@ -89,11 +137,16 @@ export default function AddContributionScreen() {
         <Text style={[styles.headerLabel, { color: colors.textSecondary }]}>NEW CONTRIBUTION</Text>
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.amountContainer}>
-          <Text style={[styles.plusSign, { color: colors.textSecondary }]}>+</Text>
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      >
+        <Animated.View style={[styles.amountContainer, amountContainerStyle]}>
+          <Animated.Text style={[styles.plusSign, { color: colors.textSecondary }, plusSignStyle]}>+</Animated.Text>
           <Text style={[styles.amountText, { color: colors.text }]}>{amount}</Text>
-        </View>
+        </Animated.View>
 
         <View style={styles.formSection}>
           <View style={styles.fieldContainer}>
