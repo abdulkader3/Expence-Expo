@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Pressable, TextInput, useColorScheme, KeyboardA
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from './contexts/AuthContext';
-import { api } from '../src/services/api';
+import { createUser, RegisterPayload } from '../src/services/auth';
 
 export default function SignupScreen() {
   const { login } = useAuth();
@@ -78,8 +78,8 @@ export default function SignupScreen() {
     // Health check first
     console.log("[SCREEN] Running health check...");
     try {
-      const healthResult = await api.healthCheck();
-      console.log("[SCREEN] Health check result:", healthResult);
+      // const healthResult = await api.healthCheck();
+      // console.log("[SCREEN] Health check result:", healthResult);
     } catch (healthError) {
       console.log("[SCREEN] Health check FAILED:", healthError);
     }
@@ -87,17 +87,17 @@ export default function SignupScreen() {
     setIsLoading(true);
     
     try {
-      const payload = {
-        name: fullName.trim(),
-        email: email.trim().toLowerCase(),
-        password,
-        phone: phone.trim() || undefined,
-        company: company.trim() || undefined,
-      };
-      
-      console.log("[SCREEN] Calling login with payload:", payload);
-      
-      const result = await login(payload);
+const payload: RegisterPayload = {
+      name: fullName.trim(),
+      email: email.trim().toLowerCase(),
+      password,
+      phone: phone.trim() || undefined,
+      company: company.trim() || undefined,
+    };
+    
+    console.log("[SCREEN] Calling createUser with payload:", payload);
+    
+    const result = await createUser(payload);
       
       console.log("[SCREEN] Login result:", result);
       

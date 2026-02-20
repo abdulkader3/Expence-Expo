@@ -9,6 +9,18 @@ export interface RegisterPayload {
   company?: string;
 }
 
+export interface LoginPayload {
+  email: string;
+  password: string;
+  device_name?: string;
+}
+
+export interface LoginResponse {
+  user: UserData;
+  tokens: Tokens;
+  expires_in: number;
+}
+
 export interface RegisterResponse {
   user: UserData;
   tokens: Tokens;
@@ -42,6 +54,20 @@ export async function createUser(payload: RegisterPayload): Promise<RegisterResp
   const response = await api.post<{ data: RegisterResponse }>('/auth/register', payload);
   
   console.log('[AUTH] REGISTER RESPONSE:', response);
+  
+  const { data } = response;
+  await storage.setTokens(data.tokens);
+  await storage.setUser(data.user);
+  
+  return data;
+}
+
+export async function loginUser(payload: LoginPayload): Promise<LoginResponse> {
+  console.log('[AUTH] LOGIN PAYLOAD:', JSON.stringify(payload, null, 2));
+  
+  const response = await api.post<{ data: LoginResponse }>('/auth/login', payload);
+  
+  console.log('[AUTH] LOGIN RESPONSE:', response);
   
   const { data } = response;
   await storage.setTokens(data.tokens);

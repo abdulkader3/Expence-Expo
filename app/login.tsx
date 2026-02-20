@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, useColorScheme, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, useColorScheme, KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from './contexts/AuthContext';
 
 export default function LoginScreen() {
-  const { login } = useAuth();
+  const { login, isLoading, error, fieldErrors, clearError } = useAuth();
   const router = useRouter();
   const colorScheme = useColorScheme();
   const [email, setEmail] = useState('');
@@ -25,9 +25,34 @@ export default function LoginScreen() {
     border: isDark ? '#334155' : '#e2e8f0',
   };
 
-  const handleLogin = () => {
-    login();
-    router.replace('/');
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please enter both email and password');
+      return;
+    }
+
+    try {
+      const result = await login({ email, password, device_name: Platform.OS });
+      if (result.success) {
+        router.replace('/');
+      } else {
+        if (result.error) {
+          Alert.alert('Login Failed', result.error);
+        }
+        if (result.fieldErrors && result.fieldErrors.length > 0) {
+          result.fieldErrors.forEach(err => {
+            if (err.field === 'email') {
+              setEmail('');
+            }
+            if (err.field === 'password') {
+              setPassword('');
+            }
+          });
+        }
+      }
+    } catch (error) {
+      Alert.alert('Login Failed', error instanceof Error ? error.message : 'An error occurred');
+    }
   };
 
   const handleFingerprint = () => {
@@ -49,6 +74,12 @@ export default function LoginScreen() {
           <View style={styles.decorativeBottom} />
 
           <View style={[styles.card, { backgroundColor: colors.cardBg, borderColor: colors.primary + '1a' }]}>
+            {error ? (
+              <View style={[styles.errorBanner, { backgroundColor: '#ef4444' + '20' }]}>
+                <Text style={[styles.errorBannerText, { color: '#ffffff' }]}>{error}</Text>
+              </View>
+            ) : null}
+
             <View style={styles.header}>
               <View style={[styles.logoContainer, { backgroundColor: colors.primary + '33' }]}>
                 <Text style={styles.logoIcon}>💰</Text>
@@ -62,7 +93,7 @@ export default function LoginScreen() {
             <View style={styles.form}>
               <View style={styles.inputGroup}>
                 <Text style={[styles.label, { color: colors.text }]}>Email</Text>
-                <View style={[styles.inputContainer, { backgroundColor: colors.inputBg }]}>
+                <View style={[styles.inputContainer, { backgroundColor: colors.inputBg, borderColor: fieldErrors.find(err => err.field === 'email') ? '#ef4444' : 'transparent' }]}>
                   <Text style={styles.inputIcon}>✉️</Text>
                   <TextInput
                     style={[styles.input, { color: colors.text }]}
@@ -73,6 +104,7 @@ export default function LoginScreen() {
                     keyboardType="email-address"
                     autoCapitalize="none"
                     autoComplete="email"
+                    editable={!isLoading}
                   />
                 </View>
               </View>
@@ -84,7 +116,7 @@ export default function LoginScreen() {
                     <Text style={[styles.forgotLink, { color: colors.primary }]}>Forgot Password?</Text>
                   </Pressable>
                 </View>
-                <View style={[styles.inputContainer, { backgroundColor: colors.inputBg }]}>
+                <View style={[styles.inputContainer, { backgroundColor: colors.inputBg, borderColor: fieldErrors.find(err => err.field === 'password') ? '#ef4444' : 'transparent' }]}>
                   <Text style={styles.inputIcon}>🔒</Text>
                   <TextInput
                     style={[styles.input, { color: colors.text }]}
@@ -94,16 +126,23 @@ export default function LoginScreen() {
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
                     autoComplete="password"
+                    editable={!isLoading}
                   />
-                  <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
+                  <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton} disabled={isLoading}>
                     <Text style={styles.eyeIcon}>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
                   </Pressable>
                 </View>
               </View>
 
-              <Pressable style={styles.loginButton} onPress={handleLogin}>
-                <Text style={styles.loginButtonText}>Login</Text>
-                <Text style={styles.loginButtonArrow}>→</Text>
+              <Pressable style={styles.loginButton} onPress={handleLogin} disabled={isLoading}>
+                {isLoading ? (
+                  <ActivityIndicator color="#1a1a1a" size="small" style={styles.loadingIndicator} />
+                ) : (
+                  <>
+                    <Text style={styles.loginButtonText}>Login</Text>
+                    <Text style={styles.loginButtonArrow}>→</Text>
+                  </>
+                )}
               </Pressable>
 
               <View style={styles.dividerContainer}>
@@ -112,7 +151,7 @@ export default function LoginScreen() {
                 <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
               </View>
 
-              <Pressable style={[styles.fingerprintButton, { borderColor: colors.border }]} onPress={handleFingerprint}>
+              <Pressable style={[styles.fingerprintButton, { borderColor: colors.border }]} onPress={handleFingerprint} disabled={isLoading}>
                 <Text style={styles.fingerprintIcon}>👆</Text>
               </Pressable>
             </View>
@@ -121,7 +160,7 @@ export default function LoginScreen() {
               <Text style={[styles.footerText, { color: colors.textSecondary }]}>
                 Don't have an account?{' '}
               </Text>
-              <Pressable onPress={() => router.push('/signup')}>
+              <Pressable onPress={() => router.push('/signup')} disabled={isLoading}>
                 <Text style={[styles.signupLink, { color: colors.primary }]}>Sign up</Text>
               </Pressable>
             </View>
@@ -157,6 +196,7 @@ const styles = StyleSheet.create({
   loginButton: { backgroundColor: '#5bee2b', height: 56, borderRadius: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 8, shadowColor: '#5bee2b', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 8 },
   loginButtonText: { fontSize: 18, fontWeight: '800', color: '#1a1a1a' },
   loginButtonArrow: { fontSize: 18, color: '#1a1a1a' },
+  loadingIndicator: { alignSelf: 'center' },
   dividerContainer: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 16 },
   dividerLine: { flex: 1, height: 1 },
   dividerText: { fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1.5 },
@@ -165,4 +205,6 @@ const styles = StyleSheet.create({
   footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 32 },
   footerText: { fontSize: 14, fontWeight: '500' },
   signupLink: { fontSize: 14, fontWeight: '700', textDecorationLine: 'underline', marginLeft: 4 },
+  errorBanner: { padding: 12, borderRadius: 8, marginBottom: 16 },
+  errorBannerText: { fontSize: 14, fontWeight: '500', textAlign: 'center' },
 });
