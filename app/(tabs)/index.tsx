@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, Image, ScrollView, useColorScheme, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useAuth } from './AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const users = [
   { id: 'alex', name: 'Alex', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAOg65orNmJuNBu8uIlUkuR3n3Pq-IDG_2SXuVvk_Syq81n2dEsgBUpIZYGheTv7a90DRRMDO-mUvX5CWm_xnM6T-GDkLZkmQqr2btNHHga39hke2amvAAAlfcAvAlKKaja3HytsLw_UipxikiYWK-KSVaBgck6ZX0w9WkiKm6gwfsPYSwEfnWjdpBP1o4PmWlXMCYrFk_RdoqZuZfdhDuTHp6nPnGje-HCy29bdR9koU9QVDTc1cKVYaWKw6scJEP0zHQZIENFXd2F', bgColor: '#ffe8f2' },
@@ -12,7 +12,7 @@ const users = [
 ];
 
 export default function HomeScreen() {
-  const { logout } = useAuth();
+  const { isLoggedIn, logout } = useAuth();
   const router = useRouter();
   const colorScheme = useColorScheme();
   const [selectedUser, setSelectedUser] = useState('jordan');
@@ -34,6 +34,11 @@ export default function HomeScreen() {
   }, []);
 
   const handleGetStarted = async () => {
+    if (!isLoggedIn) {
+      router.push('/login');
+      return;
+    }
+
     setIsLoading(true);
     try {
       const response = await fetch('http://192.168.0.103:5000/health');
@@ -47,6 +52,10 @@ export default function HomeScreen() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleLoginPress = () => {
+    router.push('/login');
   };
 
   const handleLogout = () => {

@@ -1,9 +1,11 @@
  
-import { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Image, ScrollView, useColorScheme } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Pressable, Image, ScrollView, useColorScheme, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import { useAuth } from './contexts/AuthContext';
 
 const categories = [
   { id: 'all', label: 'All' },
@@ -26,9 +28,82 @@ const transactions = {
 export default function PartnerLedgerScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
+  const { user, refreshUser, updateUser } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedName, setEditedName] = useState('');
+  const [editedPhone, setEditedPhone] = useState('');
+  const [editedCompany, setEditedCompany] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   const isDark = colorScheme === 'dark';
+
+  useEffect(() => {
+    refreshUser();
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      setEditedName(user.name || '');
+      setEditedPhone(user.phone || '');
+      setEditedCompany(user.company || '');
+    }
+  }, [user]);
+
+  const handleAvatarPick = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (!permissionResult.granted) {
+      Alert.alert('Permission Required', 'Please allow access to your photo library to change your profile picture.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      setIsUploadingAvatar(true);
+      
+      const uploadResult = await updateUser({
+        avatar: {
+          uri: asset.uri,
+          name: asset.fileName || 'avatar.jpg',
+          type: asset.mimeType || 'image/jpeg',
+        },
+      });
+      
+      setIsUploadingAvatar(false);
+      
+      if (uploadResult.success) {
+        Alert.alert('Success', 'Profile picture updated successfully');
+      } else {
+        Alert.alert('Error', uploadResult.error || 'Failed to update profile picture');
+      }
+    }
+  };
+
+  const handleSave = async () => {
+    setIsLoading(true);
+    const result = await updateUser({
+      name: editedName,
+      phone: editedPhone,
+      company: editedCompany,
+    });
+    setIsLoading(false);
+    
+    if (result.success) {
+      setIsEditing(false);
+      Alert.alert('Success', 'Profile updated successfully');
+    } else {
+      Alert.alert('Error', result.error || 'Failed to update profile');
+    }
+  };
 
   const colors = {
     background: isDark ? '#152210' : '#f6f8f6',
@@ -109,20 +184,81 @@ export default function PartnerLedgerScreen() {
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.profileSection}>
-          <View style={styles.avatarContainer}>
+          <Pressable style={styles.avatarContainer} onPress={handleAvatarPick} disabled={isUploadingAvatar}>
             <Image
               source={{
-                uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBfkbT8HE2Gk4Rxx_giLvhdwR_VVLODiuzRGljQ5yY-TzqvG34OigMynOn1tppq4a8ufekAMyylAsxQS2Phtt4c2p0Bf7pSmTRByeJCOZJHGfg6g7oOAmHUgpqbw7IA4ChhCrZmGLANwRyuW6fz_RWyQsGVrz6Iz1tm3TP3ny7gPLjI4kx9r9XXoA5E4dblH2e1Dqxsxetpzd6nCsGKtApk6-ZGVR-rILeb8AgMgkmiTmpt-El11SfeZowaBiq84F_D1QR_gjJ318BH',
+                uri: user?.avatar_url || 'https://lh3.googleusercontent.com/aida-public/AB6AXuBfkbT8HE2Gk4Rxx_giLvhdwR_VVLODiuzRGljQ5yY-TzqvG34OigMynOn1tppq4a8ufekAMyylAsxQS2Phtt4c2p0Bf7pSmTRByeJCOZJHGfg6g7oOAmHUgpqbw7IA4ChhCrZmGLANwRyuW6fz_RWyQsGVrz6Iz1tm3TP3ny7gPLjI4kx9r9XXoA5E4dblH2e1Dqxsxetpzd6nCsGKtApk6-ZGVR-rILeb8AgMgkmiTmpt-El11SfeZowaBiq84F_D1QR_gjJ318BH',
               }}
               style={styles.avatar}
             />
+            {isUploadingAvatar && (
+              <View style={styles.avatarUploadOverlay}>
+                <ActivityIndicator size="small" color="#fff" />
+              </View>
+            )}
+            <View style={styles.avatarCameraIcon}>
+              <Ionicons name="camera" size={14} color="#fff" />
+            </View>
             <View style={styles.verifiedBadge}>
               <Ionicons name="checkmark" size={16} color="#fff" />
             </View>
-          </View>
+          </Pressable>
 
-          <Text style={[styles.userName, { color: colors.text }]}>Sarah Jenkins</Text>
-          <Text style={styles.userRole}>Product Designer • @sarahj</Text>
+          {isEditing ? (
+            <View style={styles.editContainer}>
+              <TextInput
+                style={[styles.editInput, { color: colors.text, borderColor: colors.border }]}
+                value={editedName}
+                onChangeText={setEditedName}
+                placeholder="Name"
+                placeholderTextColor={colors.textSubtle}
+              />
+              <TextInput
+                style={[styles.editInput, { color: colors.text, borderColor: colors.border }]}
+                value={editedPhone}
+                onChangeText={setEditedPhone}
+                placeholder="Phone"
+                placeholderTextColor={colors.textSubtle}
+                keyboardType="phone-pad"
+              />
+              <TextInput
+                style={[styles.editInput, { color: colors.text, borderColor: colors.border }]}
+                value={editedCompany}
+                onChangeText={setEditedCompany}
+                placeholder="Company"
+                placeholderTextColor={colors.textSubtle}
+              />
+              <View style={styles.editButtons}>
+                <Pressable
+                  style={[styles.editButton, { backgroundColor: colors.surface }]}
+                  onPress={() => setIsEditing(false)}
+                >
+                  <Text style={[styles.editButtonText, { color: colors.text }]}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.editButton, { backgroundColor: colors.primary }]}
+                  onPress={handleSave}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator size="small" color="#131811" />
+                  ) : (
+                    <Text style={[styles.editButtonText, { color: '#131811' }]}>Save</Text>
+                  )}
+                </Pressable>
+              </View>
+            </View>
+          ) : (
+            <>
+              <Pressable style={styles.editProfileButton} onPress={() => setIsEditing(true)}>
+                <Text style={[styles.userName, { color: colors.text }]}>{user?.name || 'User'}</Text>
+                <Ionicons name="pencil" size={16} color={colors.textSubtle} style={{ marginLeft: 8 }} />
+              </Pressable>
+              <Text style={styles.userRole}>
+                {user?.company || 'No company'} {user?.email ? `• ${user.email}` : ''}
+              </Text>
+            </>
+          )}
 
           <View style={styles.contributionSection}>
             <Text style={styles.contributionLabel}>Total Contributed</Text>
@@ -194,24 +330,6 @@ export default function PartnerLedgerScreen() {
         <Ionicons name="add" size={24} color="#131811" />
         <Text style={styles.fabText}>Add Contribution</Text>
       </Pressable>
-
-      <View style={[styles.bottomNav, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
-        <Pressable style={styles.navItem} onPress={() => router.push('/budget')}>
-          <Ionicons name="home-outline" size={28} color={colors.textSubtle} />
-        </Pressable>
-        <Pressable style={styles.navItem}>
-          <Ionicons name="pie-chart-outline" size={28} color={colors.textSubtle} />
-        </Pressable>
-        <Pressable style={styles.navItem}>
-          <View style={styles.navItemActive}>
-            <Ionicons name="people" size={28} color={colors.primary} />
-            <View style={[styles.navDot, { backgroundColor: colors.primary }]} />
-          </View>
-        </Pressable>
-        <Pressable style={styles.navItem}>
-          <Ionicons name="settings-outline" size={28} color={colors.textSubtle} />
-        </Pressable>
-      </View>
     </SafeAreaView>
   );
 }
@@ -252,6 +370,30 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     backgroundColor: '#5bee2b',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 4,
+    borderColor: '#f6f8f6',
+  },
+  avatarUploadOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 56,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarCameraIcon: {
+    position: 'absolute',
+    bottom: 0,
+    right: 4,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 4,
@@ -372,4 +514,25 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#fff',
   },
+  editContainer: { width: '100%', paddingHorizontal: 24, marginTop: 16 },
+  editInput: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    marginBottom: 12,
+  },
+  editButtons: { flexDirection: 'row', gap: 12, marginTop: 8 },
+  editButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+  },
+  editButtonText: { fontSize: 16, fontWeight: '600' },
+  editProfileButton: { flexDirection: 'row', alignItems: 'center', marginTop: 16 },
 });

@@ -127,27 +127,6 @@ export default function PartnersScreen() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {partners.map(renderPartnerCard)}
       </ScrollView>
-
-      <View style={[styles.bottomNav, { backgroundColor: isDark ? 'rgba(21,34,16,0.95)' : 'rgba(255,255,255,0.95)' }]}>
-        <Pressable style={styles.navItem} onPress={() => router.push('/budget')}>
-          <MaterialIcons name="home" size={26} color={colors.tabInactive} />
-          <Text style={[styles.navLabel, { color: colors.tabInactive }]}>Home</Text>
-        </Pressable>
-        <Pressable style={styles.navItem}>
-          <MaterialIcons name="receipt-long" size={26} color={colors.tabInactive} />
-          <Text style={[styles.navLabel, { color: colors.tabInactive }]}>Expenses</Text>
-        </Pressable>
-        <Pressable style={styles.navItem}>
-          <View style={[styles.navItemActive, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#f6f8f6' }]}>
-            <MaterialIcons name="group" size={26} color={colors.primary} />
-          </View>
-          <Text style={[styles.navLabelActive, { color: colors.primary }]}>Partners</Text>
-        </Pressable>
-        <Pressable style={styles.navItem}>
-          <MaterialIcons name="settings" size={26} color={colors.tabInactive} />
-          <Text style={[styles.navLabel, { color: colors.tabInactive }]}>Settings</Text>
-        </Pressable>
-      </View>
     </SafeAreaView>
   );
 }

@@ -66,25 +66,6 @@ export default function BudgetScreen() {
       <Pressable style={[styles.fab, { backgroundColor: colors.fabBg }]} onPress={() => router.push('/add-contribution')}>
         <MaterialIcons name="add" size={32} color={colors.fabIcon} />
       </Pressable>
-
-      <View style={[styles.bottomNav, { backgroundColor: isDark ? 'rgba(21,34,16,0.9)' : 'rgba(255,255,255,0.9)', borderTopColor: colors.border }]}>
-        <Pressable style={styles.navItem}>
-          <MaterialIcons name="home" size={28} color={colors.tabInactive} />
-          <Text style={[styles.navLabel, { color: colors.tabInactive }]}>Home</Text>
-        </Pressable>
-        <Pressable style={styles.navItem}>
-          <MaterialIcons name="pie-chart" size={28} color={colors.primary} />
-          <Text style={[styles.navLabelActive, { color: colors.primary }]}>Budget</Text>
-        </Pressable>
-        <Pressable style={styles.navItem}>
-          <MaterialIcons name="receipt-long" size={28} color={colors.tabInactive} />
-          <Text style={[styles.navLabel, { color: colors.tabInactive }]}>Activity</Text>
-        </Pressable>
-        <Pressable style={styles.navItem} onPress={() => router.push('/partner-ledger')}>
-          <MaterialIcons name="person" size={28} color={colors.tabInactive} />
-          <Text style={[styles.navLabel, { color: colors.tabInactive }]}>Profile</Text>
-        </Pressable>
-      </View>
     </SafeAreaView>
   );
 }

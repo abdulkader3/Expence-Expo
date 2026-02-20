@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { storage, UserData } from '../../src/services/storage';
-import { createUser, RegisterPayload, loginUser, LoginPayload, handleAuthError } from '../../src/services/auth';
+import { storage, UserData, Tokens } from '../../src/services/storage';
+import { createUser, RegisterPayload, loginUser, LoginPayload, handleAuthError, getCurrentUser, updateCurrentUser, UpdateUserPayload, UserResponse, logoutUser as authLogoutUser } from '../../src/services/auth';
 
 export interface AuthState {
   isLoggedIn: boolean;
@@ -14,6 +14,8 @@ export interface AuthContextType extends AuthState {
   login: (payload: LoginPayload) => Promise<{ success: boolean; error?: string; fieldErrors?: { field: string; message: string }[] }>;
   logout: () => Promise<void>;
   clearError: () => void;
+  refreshUser: () => Promise<void>;
+  updateUser: (payload: UpdateUserPayload) => Promise<{ success: boolean; error?: string; user?: UserResponse }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -80,12 +82,74 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      await storage.clearAll();
+      const tokens = await storage.getTokens();
+      if (tokens?.refresh_token) {
+        await authLogoutUser(tokens.refresh_token);
+      }
     } catch (error) {
-      console.error('Error clearing storage:', error);
+      console.error('Error calling logout API:', error);
     } finally {
       setUser(null);
       setIsLoggedIn(false);
+    }
+  }, []);
+
+  const refreshUser = useCallback(async () => {
+    try {
+      const userData = await getCurrentUser();
+      await storage.setUser({
+        id: userData.id,
+        name: userData.name,
+        email: userData.email,
+        phone: userData.phone,
+        company: userData.company,
+        avatar_url: userData.avatar_url,
+        createdAt: userData.created_at,
+        updatedAt: userData.created_at,
+      });
+      setUser({
+        id: userData.id,
+        name: userData.name,
+        email: userData.email,
+        phone: userData.phone,
+        company: userData.company,
+        avatar_url: userData.avatar_url,
+        createdAt: userData.created_at,
+        updatedAt: userData.created_at,
+      });
+    } catch (error) {
+      console.error('Error refreshing user:', error);
+    }
+  }, []);
+
+  const updateUser = useCallback(async (payload: UpdateUserPayload) => {
+    try {
+      const response = await updateCurrentUser(payload);
+      await storage.setUser({
+        id: response.user.id,
+        name: response.user.name,
+        email: response.user.email,
+        phone: response.user.phone,
+        company: response.user.company,
+        avatar_url: response.user.avatar_url,
+        createdAt: response.user.created_at,
+        updatedAt: response.user.created_at,
+      });
+      setUser({
+        id: response.user.id,
+        name: response.user.name,
+        email: response.user.email,
+        phone: response.user.phone,
+        company: response.user.company,
+        avatar_url: response.user.avatar_url,
+        createdAt: response.user.created_at,
+        updatedAt: response.user.created_at,
+      });
+      return { success: true, user: response.user };
+    } catch (error) {
+      console.error('Error updating user:', error);
+      const handled = handleAuthError(error);
+      return { success: false, error: handled.message };
     }
   }, []);
 
@@ -97,6 +161,8 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       login: login,
       logout: logout,
       clearError: clearError,
+      refreshUser: refreshUser,
+      updateUser: updateUser,
       error: error,
       fieldErrors: fieldErrors,
     }}>

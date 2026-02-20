@@ -10,6 +10,7 @@ export interface UserData {
   email: string;
   phone?: string;
   company?: string;
+  avatar_url?: string;
   createdAt: string;
   updatedAt: string;
 }

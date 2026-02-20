@@ -46,6 +46,7 @@ async function request<T>(
       ...fetchOptions,
       headers,
       signal: controller.signal,
+      credentials: 'include',
     });
 
     clearTimeout(timeoutId);
@@ -111,6 +112,13 @@ export const api = {
       ...options,
       method: 'PUT',
       body: body ? JSON.stringify(body) : undefined,
+    }),
+
+  patch: <T>(endpoint: string, body?: unknown, options?: RequestOptions) =>
+    request<T>(endpoint, {
+      ...options,
+      method: 'PATCH',
+      body: body ? (body instanceof FormData ? body : JSON.stringify(body)) : undefined,
     }),
 
   delete: <T>(endpoint: string, options?: RequestOptions) =>

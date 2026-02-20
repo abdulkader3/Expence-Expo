@@ -175,26 +175,6 @@ export default function LeaderboardScreen() {
       <Pressable style={styles.fab} onPress={() => router.push('/add-contribution')}>
         <MaterialIcons name="add" size={32} color="#1a1a1a" />
       </Pressable>
-
-      <View style={[styles.bottomNav, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
-        <Pressable style={styles.navItem}>
-          <MaterialIcons name="leaderboard" size={24} color={colors.primary} />
-          <Text style={[styles.navLabel, { color: colors.primary }]}>Board</Text>
-        </Pressable>
-        <Pressable style={styles.navItem}>
-          <MaterialIcons name="pie-chart" size={24} color={colors.textMuted} />
-          <Text style={[styles.navLabel, { color: colors.textMuted }]}>Stats</Text>
-        </Pressable>
-        <View style={styles.navSpacer} />
-        <Pressable style={styles.navItem}>
-          <MaterialIcons name="notifications" size={24} color={colors.textMuted} />
-          <Text style={[styles.navLabel, { color: colors.textMuted }]}>Alerts</Text>
-        </Pressable>
-        <Pressable style={styles.navItem}>
-          <MaterialIcons name="settings" size={24} color={colors.textMuted} />
-          <Text style={[styles.navLabel, { color: colors.textMuted }]}>Settings</Text>
-        </Pressable>
-      </View>
     </SafeAreaView>
   );
 }
