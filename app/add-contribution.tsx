@@ -111,11 +111,6 @@ export default function AddContributionScreen() {
   };
 
   const plusSignStyle = {
-    opacity: scrollY.interpolate({
-      inputRange: [0, scrollDistance / 2, scrollDistance],
-      outputRange: [1, 0.5, 0],
-      extrapolate: 'clamp',
-    }),
   };
 
   const labelOpacity = scrollY.interpolate({
