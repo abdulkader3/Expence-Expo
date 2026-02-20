@@ -1,42 +1,23 @@
-import { View, Text, StyleSheet, Pressable, Image, ScrollView, useColorScheme } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Image, ScrollView, useColorScheme, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useEffect, useState, useCallback } from 'react';
+import { getPartners, Partner } from '../src/services/partners';
 
-const partners = [
-  {
-    id: 1,
-    name: 'Alex',
-    role: 'Top Contributor',
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDUcQgBhT4xao5pJ8JIK0uLK87G3wUXEYNGRHOUZHe6zgO9sfi7EQsrpinE9m3Eo9i558v62zcX_Uym-JMHoxjuORIPLJLHiLCjWNjhssTzcXj6_7qVlbZG75qfjJQui4vl67kZWrH6B8OSapFQgJtLyCTD9braAxvMsSSKZCXe6CkvNLeJGX_Qetx9w23bVHrLoGbCJaCeJ3tFmZ5alKEoSRbEjLEffQSFHYSEqVUBmgNcwbLZRz9vJawvfyHW57wdfyKRXCG05H8x',
-    contributed: 12450.0,
-    rank: 1,
-    isTopContributor: true,
-  },
-  {
-    id: 2,
-    name: 'Jordan',
-    role: 'Team Member',
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDpIizerIKMf-Fhq5EqBDkm83xd7ZhOU6L-OBJQBP_imaell5IWaCGwFy8-aQBkvyPOgXYvkJJcd2oaz9RAWcm8-DMwPwfctFdU7-xr7cQVs9N551O_Sd8zYp9onkDcrYiCCzyAmTN-CaUtlLkGL4wg4JB8Q65vvIkMytCBXZlGvJhlW9vP04hOCJTfAWe9qtLKq-Cg7MNC9c5JxSep6ySi5WxEI-P2HTEKn8WNhCF3PBtVfIPxcfPksdMYqJNsxsiIdS9GbvMIirJA',
-    contributed: 8320.5,
-    rank: 2,
-    isTopContributor: false,
-  },
-  {
-    id: 3,
-    name: 'Sam',
-    role: 'Team Member',
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBfTwZMYuyUy_FkgXYQpeWtRn1-HD6qhcMlenBKclw3hCf-4Ks5CPnr9NGAX9TbifYl6XQamTA2jTNKqwTIs5u2YVXGnuDtv-A7vLsvJXX9MNUYWKnVfdQmXnbwssupCqx5__XZT16j0JlDiVB6dG30hPYL5MDTfzu4984vR5AeZVmSKWCpaimFHTOKbX-ejWhoyOcnzoNT38PZtpeVd_0wyPC4m0EEAftJ5abAC4l0fBJowZ_XcvbdlNLDNUp4w7ZlW6D6PBcPPqYE',
-    contributed: 5100.0,
-    rank: 3,
-    isTopContributor: false,
-  },
-];
+interface PartnerWithRank extends Partner {
+  rank: number;
+  isTopContributor: boolean;
+}
 
 export default function PartnersScreen() {
   const colorScheme = useColorScheme();
   const router = useRouter();
   const isDark = colorScheme === 'dark';
+  
+  const [partners, setPartners] = useState<PartnerWithRank[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const colors = {
     background: isDark ? '#152210' : '#f6f8f6',
@@ -49,11 +30,39 @@ export default function PartnersScreen() {
     tabInactive: '#a3a3a3',
   };
 
+  const fetchPartners = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await getPartners({ 
+        sort_by: 'total_contributed',
+        per_page: 20,
+      });
+      
+      const partnersWithRank: PartnerWithRank[] = response.data.map((partner, index) => ({
+        ...partner,
+        rank: index + 1,
+        isTopContributor: index === 0,
+      }));
+      
+      setPartners(partnersWithRank);
+    } catch (err) {
+      console.error('[PARTNERS] Error fetching partners:', err);
+      setError('Failed to load partners');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPartners();
+  }, [fetchPartners]);
+
   const formatCurrency = (amount: number) => {
     return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
-  const renderPartnerCard = (partner: typeof partners[0]) => (
+  const renderPartnerCard = (partner: PartnerWithRank) => (
     <View
       key={partner.id}
       style={[
@@ -65,7 +74,7 @@ export default function PartnersScreen() {
       <View style={styles.partnerHeader}>
         <View style={styles.partnerInfo}>
           <View style={[styles.avatarContainer, partner.isTopContributor && { borderColor: colors.primary + '33' }]}>
-            <Image source={{ uri: partner.avatar }} style={styles.avatar} />
+            <Image source={{ uri: partner.avatar_url }} style={styles.avatar} />
             <View style={[styles.rankBadge, { backgroundColor: colors.primary }]}>
               <Text style={styles.rankText}>#{partner.rank}</Text>
             </View>
@@ -94,7 +103,7 @@ export default function PartnersScreen() {
           <MaterialIcons name="savings" size={14} color={colors.textMuted} />
           <Text style={[styles.contributionLabelText, { color: colors.textMuted }]}>Total Contributed</Text>
         </View>
-        <Text style={[styles.contributionAmount, { color: colors.text }]}>{formatCurrency(partner.contributed)}</Text>
+        <Text style={[styles.contributionAmount, { color: colors.text }]}>{formatCurrency(partner.total_contributed)}</Text>
       </View>
 
       <Pressable
@@ -111,6 +120,41 @@ export default function PartnersScreen() {
       </Pressable>
     </View>
   );
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+          <View>
+            <Text style={[styles.headerSubtitle, { color: colors.textMuted }]}>Partner Profiles</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>Team Finances</Text>
+          </View>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+          <View>
+            <Text style={[styles.headerSubtitle, { color: colors.textMuted }]}>Partner Profiles</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>Team Finances</Text>
+          </View>
+        </View>
+        <View style={styles.errorContainer}>
+          <Text style={[styles.errorText, { color: colors.text }]}>{error}</Text>
+          <Pressable style={[styles.retryButton, { backgroundColor: colors.primary }]} onPress={fetchPartners}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -277,6 +321,30 @@ const styles = StyleSheet.create({
   },
   historyButtonText: {
     fontSize: 15,
+    fontWeight: '700',
+    color: '#131811',
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  errorText: {
+    fontSize: 16,
+  },
+  retryButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    fontSize: 16,
     fontWeight: '700',
     color: '#131811',
   },

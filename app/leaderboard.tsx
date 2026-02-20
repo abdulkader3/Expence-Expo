@@ -1,39 +1,18 @@
-import { View, Text, StyleSheet, ScrollView, Image, Pressable, useColorScheme } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, Pressable, useColorScheme, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
-
-const partners = [
-  {
-    id: 'sam',
-    name: 'Sam',
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDE6rrk2ISpD9cw8um-rHNAH50onklilUfArIzG12VkQRafMOCcQHBjtaZI6irK5DODuZhq9prWPKezQPbPD235d9rpinN1V-9yJ6S0hJGQsucd3yWBycsRwd1leAH7mT3AU1VdJPApwxe6M2yHpBt0fwXIHQAQSFUTOhygqMdMD9vDhuZHaTNgejpsgXoBVWqEnCtXX6DtEnF9FE7ma1q7o59dm697KbG-Nngz6IRNWqV6pac0E0eAx7h3wBVGTKPNBMqqTcMpcjQ_',
-    total: 3450.00,
-    badge: 'Top Contributor',
-    isTop: true,
-  },
-  {
-    id: 'you',
-    name: 'You',
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAyWwukC2dWDsnAgoFhPFUrDE0l5IWfTqNcwNXISYsq9hKTGYWAFNwpbpgcpSyQDyu_Xfa0YzqVTZmlLxTXmZK5AwmKVF4J7pZHKfm_kYdAUXLL0Cye1VqtiUYjrEtBmvZH1RZ5uttVCXNawtE0_iCYJwaokaawfhFFArUCUZ5FyRNm32CLYH_BPiqqWd6wveAR67IKRr8LOSDJzvsYtnswgbqwF_vo9mv981uxvLaSGluEogKuOATvF0dKTOWwx9b1uFezySsM-SaR',
-    total: 2890.00,
-    badge: 'Rising Star',
-    isYou: true,
-  },
-];
-
-const contributions = [
-  { id: '1', title: 'Office Snacks', contributor: 'Sam', category: 'Food', amount: 45.50, date: 'Today', icon: 'local-cafe', color: '#f97316' },
-  { id: '2', title: 'AWS Credits', contributor: 'Alex', category: 'Tech', amount: 200.00, date: 'Yesterday', icon: 'cloud', color: '#3b82f6' },
-  { id: '3', title: 'Client Dinner', contributor: 'Sam', category: 'Marketing', amount: 350.00, date: 'Oct 22', icon: 'restaurant', color: '#ec4899' },
-  { id: '4', title: 'Flight Refund', contributor: 'Team Pot', category: 'Travel', amount: 120.00, date: 'Oct 20', icon: 'flight', color: '#a855f7' },
-  { id: '5', title: 'Monthly Deposit', contributor: 'From Sam', category: 'Savings', amount: 500.00, date: 'Oct 18', icon: 'attach-money', color: '#10b981' },
-];
+import { useEffect, useState, useCallback } from 'react';
+import { getLeaderboard, LeaderboardEntry } from '../src/services/partners';
 
 export default function LeaderboardScreen() {
   const colorScheme = useColorScheme();
   const router = useRouter();
   const isDark = colorScheme === 'dark';
+  
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const colors = {
     background: isDark ? '#152210' : '#f6f8f6',
@@ -45,8 +24,53 @@ export default function LeaderboardScreen() {
     border: isDark ? '#2a3f27' : '#e5e5e5',
   };
 
+  const fetchLeaderboard = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await getLeaderboard({ limit: 10 });
+      setLeaderboard(response.data);
+    } catch (err) {
+      console.error('[LEADERBOARD] Error fetching:', err);
+      setError('Failed to load leaderboard');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLeaderboard();
+  }, [fetchLeaderboard]);
+
   const currentDate = new Date();
   const dateStr = currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'long' });
+
+  const topPartner = leaderboard.find(p => p.top_contributor) || leaderboard[0];
+  const secondPartner = leaderboard.find(p => !p.top_contributor && p.rank === 2);
+  const totalPool = leaderboard.reduce((sum, p) => sum + p.total_contributed, 0);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={styles.errorContainer}>
+          <Text style={[styles.errorText, { color: colors.text }]}>{error}</Text>
+          <Pressable style={[styles.retryButton, { backgroundColor: colors.primary }]} onPress={fetchLeaderboard}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -73,7 +97,7 @@ export default function LeaderboardScreen() {
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.leaderboardScroll} contentContainerStyle={styles.leaderboardContent}>
-        {partners[0] && (
+        {topPartner && (
           <View style={[styles.partnerCard, styles.topPartnerCard, { borderColor: colors.primary + '33' }]}>
             <View style={styles.cardHeader}>
               <View style={[styles.iconBadge, { backgroundColor: '#d1fae5' }]}>
@@ -87,18 +111,18 @@ export default function LeaderboardScreen() {
             <View style={styles.partnerInfo}>
               <Text style={styles.crown}>👑</Text>
               <View style={[styles.partnerAvatar, { borderWidth: 4, borderColor: '#fcd34d' }]}>
-                <Image source={{ uri: partners[0].avatar }} style={styles.avatarImage} />
+                <Image source={{ uri: topPartner.avatar_url }} style={styles.avatarImage} />
               </View>
-              <Text style={[styles.partnerName, { color: colors.text }]}>{partners[0].name}</Text>
+              <Text style={[styles.partnerName, { color: colors.text }]}>{topPartner.name}</Text>
             </View>
             <View style={styles.partnerTotal}>
-              <Text style={styles.totalAmount}>${partners[0].total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</Text>
+              <Text style={styles.totalAmount}>${topPartner.total_contributed.toLocaleString('en-US', { minimumFractionDigits: 2 })}</Text>
               <Text style={[styles.totalLabel, { color: colors.textSecondary }]}>Total Contributed</Text>
             </View>
           </View>
         )}
 
-        {partners[1] && (
+        {secondPartner && (
           <View style={[styles.partnerCard, styles.youCard]}>
             <View style={styles.cardHeader}>
               <View style={[styles.iconBadge, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
@@ -110,12 +134,12 @@ export default function LeaderboardScreen() {
             </View>
             <View style={styles.partnerInfo}>
               <View style={[styles.partnerAvatar, { borderWidth: 4, borderColor: '#1e293b' }]}>
-                <Image source={{ uri: partners[1].avatar }} style={styles.avatarImage} />
+                <Image source={{ uri: secondPartner.avatar_url }} style={styles.avatarImage} />
               </View>
-              <Text style={[styles.partnerName, { color: '#fff' }]}>{partners[1].name}</Text>
+              <Text style={[styles.partnerName, { color: '#fff' }]}>{secondPartner.name}</Text>
             </View>
             <View style={styles.partnerTotal}>
-              <Text style={[styles.totalAmount, { color: '#fff' }]}>${partners[1].total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</Text>
+              <Text style={[styles.totalAmount, { color: '#fff' }]}>${secondPartner.total_contributed.toLocaleString('en-US', { minimumFractionDigits: 2 })}</Text>
               <Text style={[styles.totalLabel, { color: '#94a3b8' }]}>Total Contributed</Text>
             </View>
           </View>
@@ -137,7 +161,7 @@ export default function LeaderboardScreen() {
             <Text style={[styles.partnerName, { color: colors.text }]}>Team Pot</Text>
           </View>
           <View style={styles.partnerTotal}>
-            <Text style={[styles.totalAmount, { color: colors.text }]}>$6,340</Text>
+            <Text style={[styles.totalAmount, { color: colors.text }]}>${totalPool.toLocaleString('en-US', { minimumFractionDigits: 2 })}</Text>
             <Text style={styles.goalText}>Goal: $10,000 🚀</Text>
           </View>
         </View>
@@ -145,25 +169,27 @@ export default function LeaderboardScreen() {
 
       <View style={[styles.contributionsSection, { backgroundColor: colors.surface }]}>
         <View style={styles.contributionsHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Contributions</Text>
-          <Pressable>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Top Contributors</Text>
+          <Pressable onPress={() => router.push('/partners')}>
             <Text style={[styles.seeAllText, { color: colors.primary }]}>See All</Text>
           </Pressable>
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} style={styles.contributionsList}>
-          {contributions.map((item) => (
-            <View key={item.id} style={styles.contributionItem}>
-              <View style={[styles.contributionIcon, { backgroundColor: item.color + '20' }]}>
-                <MaterialIcons name={item.icon as any} size={24} color={item.color} />
+          {leaderboard.slice(0, 5).map((partner) => (
+            <View key={partner.partner_id} style={styles.contributionItem}>
+              <View style={[styles.contributionIcon, { backgroundColor: partner.top_contributor ? '#d1fae5' : '#f3f4f6' }]}>
+                <MaterialIcons name="person" size={24} color={partner.top_contributor ? '#059669' : '#6b7280'} />
               </View>
               <View style={styles.contributionInfo}>
-                <Text style={[styles.contributionTitle, { color: colors.text }]}>{item.title}</Text>
-                <Text style={[styles.contributionMeta, { color: colors.textSecondary }]}>{item.contributor} contributed • {item.category}</Text>
+                <Text style={[styles.contributionTitle, { color: colors.text }]}>{partner.name}</Text>
+                <Text style={[styles.contributionMeta, { color: colors.textSecondary }]}>
+                  {partner.top_contributor ? 'Top Contributor' : `Rank #${partner.rank}`}
+                </Text>
               </View>
               <View style={styles.contributionRight}>
-                <Text style={styles.contributionAmount}>+${item.amount.toFixed(2)}</Text>
-                <Text style={[styles.contributionDate, { color: colors.textMuted }]}>{item.date}</Text>
+                <Text style={styles.contributionAmount}>+${partner.total_contributed.toLocaleString('en-US', { minimumFractionDigits: 2 })}</Text>
+                <Text style={[styles.contributionDate, { color: colors.textMuted }]}>Total</Text>
               </View>
             </View>
           ))}
@@ -181,6 +207,11 @@ export default function LeaderboardScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  errorContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },
+  errorText: { fontSize: 16 },
+  retryButton: { paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
+  retryButtonText: { fontSize: 16, fontWeight: '700', color: '#131811' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingTop: 16, paddingBottom: 8 },
   dateText: { fontSize: 14, fontWeight: '600', marginBottom: 2 },
   greeting: { fontSize: 24, fontWeight: '800' },
