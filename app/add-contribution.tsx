@@ -5,10 +5,10 @@ import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useSaveTrigger } from '@/src/contexts/SaveTriggerContext';
-import { getPartners, Partner } from '@/src/services/partners';
-import { getCurrentUser } from '@/src/services/auth';
-import { createContribution } from '@/src/services/partners';
+import { getPartners, Partner, createSelfPartner, createContribution } from '@/src/services/partners';
+import { getCurrentUser, UserResponse } from '@/src/services/auth';
 import { uploadReceipt } from '@/src/services/uploads';
+import { ApiError } from '@/src/services/api';
 
 interface ContributorOption {
   id: string;
@@ -46,6 +46,7 @@ export default function AddContributionScreen() {
   const [receiptUri, setReceiptUri] = useState<string | null>(null);
   const [receiptFile, setReceiptFile] = useState<{ uri: string; name: string; type: string } | null>(null);
   const [isUploadingReceipt, setIsUploadingReceipt] = useState(false);
+  const [currentUser, setCurrentUser] = useState<UserResponse | null>(null);
 
   const categories: Category[] = [...customCategories];
 
@@ -55,7 +56,7 @@ export default function AddContributionScreen() {
 
   useEffect(() => {
     saveTriggerRef.current.triggerSave = handleSave;
-  }, []);
+  }, [selectedContributor, amount, receiptFile, note, selectedCategory, saving]);
 
   const loadContributors = async () => {
     try {
@@ -65,6 +66,8 @@ export default function AddContributionScreen() {
         getCurrentUser(),
         getPartners({ sort_by: 'name' })
       ]);
+
+      setCurrentUser(user);
 
       const currentUserOption: ContributorOption = {
         id: user.id,
@@ -176,7 +179,20 @@ export default function AddContributionScreen() {
   };
 
   const handleSave = async () => {
-    if (!selectedContributor || amount === '0' || amount === '0.00') {
+    if (saving) {
+      console.log('[ADD-CONTRIBUTION] Already saving, ignoring...');
+      return;
+    }
+    
+    if (!selectedContributor) {
+      console.log('[ADD-CONTRIBUTION] No contributor selected');
+      Alert.alert('Error', 'Please select a contributor');
+      return;
+    }
+    
+    if (amount === '0' || amount === '0.00' || !amount) {
+      console.log('[ADD-CONTRIBUTION] Invalid amount:', amount);
+      Alert.alert('Error', 'Please enter a valid amount');
       return;
     }
 
@@ -202,17 +218,51 @@ export default function AddContributionScreen() {
         }
       }
       
-      await createContribution({
-        recorded_for: selectedContributor,
-        amount: amountValue,
-        category: selectedCategory,
-        context: note || undefined,
-        receipt_id: receiptId,
-      });
-      
-      router.replace('/leaderboard');
+      try {
+        await createContribution({
+          recorded_for: selectedContributor,
+          amount: amountValue,
+          category: selectedCategory,
+          context: note || undefined,
+          receipt_id: receiptId,
+        });
+        
+        router.replace('/leaderboard');
+      } catch (contributionError) {
+        // Check if it's a "Partner not found" error
+        if (contributionError instanceof ApiError && 
+            contributionError.status === 404 && 
+            contributionError.message === 'Partner not found') {
+          
+          console.log('[ADD-CONTRIBUTION] Partner not found, creating partner entry...');
+          
+          // Check if this is the current user
+          if (currentUser && selectedContributor === currentUser.id) {
+            // Create a partner entry for the current user using the self endpoint
+            const partnerResponse = await createSelfPartner();
+            
+            console.log('[ADD-CONTRIBUTION] Partner created:', partnerResponse);
+            
+            // Retry the contribution with the new partner
+            await createContribution({
+              recorded_for: partnerResponse.partner.id,
+              amount: amountValue,
+              category: selectedCategory,
+              context: note || undefined,
+              receipt_id: receiptId,
+            });
+            
+            router.replace('/leaderboard');
+          } else {
+            throw contributionError;
+          }
+        } else {
+          throw contributionError;
+        }
+      }
     } catch (error) {
-      console.error('Error saving contribution:', error);
+      console.error('[ADD-CONTRIBUTION] Error saving contribution:', error);
+      Alert.alert('Error', 'Failed to save contribution. Please try again.');
     } finally {
       setSaving(false);
     }

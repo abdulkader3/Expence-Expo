@@ -210,3 +210,40 @@ export async function createContribution(payload: CreateContributionPayload, ide
 
   return response;
 }
+
+export interface CreatePartnerPayload {
+  name: string;
+  email?: string;
+  phone?: string;
+  company?: string;
+  linked_user_id?: string;
+}
+
+export interface CreatePartnerResponse {
+  partner: Partner;
+}
+
+export async function createPartner(payload: CreatePartnerPayload): Promise<CreatePartnerResponse> {
+  console.log('[PARTNERS] CREATING PARTNER:', payload);
+
+  const response = await api.post<CreatePartnerResponse>('/partners/create', payload);
+
+  console.log('[PARTNERS] PARTNER CREATED:', response);
+
+  return response;
+}
+
+export interface CreateSelfPartnerResponse {
+  partner: Partner;
+  already_exists: boolean;
+}
+
+export async function createSelfPartner(): Promise<CreateSelfPartnerResponse> {
+  console.log('[PARTNERS] CREATING SELF PARTNER');
+
+  const response = await api.post<CreateSelfPartnerResponse>('/partners/self', {});
+
+  console.log('[PARTNERS] SELF PARTNER RESPONSE:', response);
+
+  return response;
+}

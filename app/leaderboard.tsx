@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useEffect, useState, useCallback } from 'react';
 import { getLeaderboard, LeaderboardEntry } from '../src/services/partners';
+import { getCurrentUser, UserResponse } from '../src/services/auth';
 
 export default function LeaderboardScreen() {
   const colorScheme = useColorScheme();
@@ -13,6 +14,7 @@ export default function LeaderboardScreen() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<UserResponse | null>(null);
 
   const colors = {
     background: isDark ? '#152210' : '#f6f8f6',
@@ -28,8 +30,12 @@ export default function LeaderboardScreen() {
     try {
       setLoading(true);
       setError(null);
-      const response = await getLeaderboard({ limit: 10 });
-      setLeaderboard(response.data);
+      const [userResponse, leaderboardResponse] = await Promise.all([
+        getCurrentUser(),
+        getLeaderboard({ limit: 10 })
+      ]);
+      setCurrentUser(userResponse);
+      setLeaderboard(leaderboardResponse.data);
     } catch (err) {
       console.error('[LEADERBOARD] Error fetching:', err);
       setError('Failed to load leaderboard');
@@ -77,11 +83,11 @@ export default function LeaderboardScreen() {
       <View style={styles.header}>
         <View>
           <Text style={[styles.dateText, { color: colors.textSecondary }]}>{dateStr}</Text>
-          <Text style={[styles.greeting, { color: colors.text }]}>Hi, Alex 👋</Text>
+          <Text style={[styles.greeting, { color: colors.text }]}>Hi, {currentUser?.name?.split(' ')[0] || 'User'} 👋</Text>
         </View>
         <View style={styles.avatarContainer}>
           <Image
-            source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDB4b8ew-QhuilbTPlWAJK24TikraxesnGHtBbYUwq77glDXcZAiErGeNPu0xBh2uWh4w0NM5ZmacmwPILeEgQux8JuFAjKtUKIk-hnBqgzdY2REqxnHaguuwfx3GlN_vSi1EqjkmBGoslUcM0dO4eLZJ1YxZWTxgtQZX8HSZrLHWEPejYeg-8JaB-eoOkpJkpyPRe1subgl0WCxXz1y2hxDWB3tE46G1tq8S3wxV3jJYWAy5gEmWpy3xUbkyY5hXPSW16kA4G5YE7I' }}
+            source={{ uri: currentUser?.avatar_url || 'https://lh3.googleusercontent.com/aida-public/AB6AXuDB4b8ew-QhuilbTPlWAJK24TikraxesnGHtBbYUwq77glDXcZAiErGeNPu0xBh2uWh4w0NM5ZmacmwPILeEgQux8JuFAjKtUKIk-hnBqgzdY2REqxnHaguuwfx3GlN_vSi1EqjkmBGoslUcM0dO4eLZJ1YxZWTxgtQZX8HSZrLHWEPejYeg-8JaB-eoOkpJkpyPRe1subgl0WCxXz1y3tE462hxDWBG1tq8S3wxV3jJYWAy5gEmWpy3xUbkyY5hXPSW16kA4G5YE7I' }}
             style={styles.avatar}
           />
           <View style={styles.onlineIndicator} />
@@ -148,7 +154,7 @@ export default function LeaderboardScreen() {
         <View style={[styles.partnerCard, styles.poolCard]}>
           <View style={styles.cardHeader}>
             <View style={[styles.iconBadge, { backgroundColor: isDark ? colors.surface : '#fff' }]}>
-              <MaterialIcons name="savings" size={20} color="#3b82f6" />
+              <MaterialIcons name="check" size={20} color="#3b82f6" />
             </View>
             <View style={styles.poolBadge}>
               <Text style={styles.poolBadgeText}>Total Pool</Text>
