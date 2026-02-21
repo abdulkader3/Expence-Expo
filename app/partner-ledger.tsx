@@ -326,10 +326,6 @@ export default function PartnerLedgerScreen() {
         </View>
       </ScrollView>
 
-      <Pressable style={[styles.fab, { backgroundColor: colors.primary }]}>
-        <Ionicons name="add" size={24} color="#131811" />
-        <Text style={styles.fabText}>Add Contribution</Text>
-      </Pressable>
     </SafeAreaView>
   );
 }
