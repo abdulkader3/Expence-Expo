@@ -279,12 +279,6 @@ export default function AddContributionScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <View style={styles.handle} />
-
-      {/* <View style={styles.header}>
-        <Text style={[styles.headerLabel, { color: colors.textSecondary }]}>NEW CONTRIBUTION</Text>
-      </View> */}
-
       <ScrollView 
         style={styles.scrollView} 
         showsVerticalScrollIndicator={false}
