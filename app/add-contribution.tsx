@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, Image, useColorScheme, Animated, Keyboard, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, Image, useColorScheme, Animated, Keyboard, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useSaveTrigger } from '@/src/contexts/SaveTriggerContext';
 import { getPartners, Partner } from '@/src/services/partners';
 import { getCurrentUser } from '@/src/services/auth';
 import { createContribution } from '@/src/services/partners';
+import { uploadReceipt } from '@/src/services/uploads';
 
 interface ContributorOption {
   id: string;
@@ -41,6 +43,9 @@ export default function AddContributionScreen() {
   const [selectedCategory, setSelectedCategory] = useState('marketing');
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
+  const [receiptUri, setReceiptUri] = useState<string | null>(null);
+  const [receiptFile, setReceiptFile] = useState<{ uri: string; name: string; type: string } | null>(null);
+  const [isUploadingReceipt, setIsUploadingReceipt] = useState(false);
 
   const categories: Category[] = [...customCategories];
 
@@ -140,6 +145,36 @@ export default function AddContributionScreen() {
     }
   };
 
+  const handleReceiptPick = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (!permissionResult.granted) {
+      Alert.alert('Permission Required', 'Please allow access to your photo library to attach a receipt.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      setReceiptUri(asset.uri);
+      setReceiptFile({
+        uri: asset.uri,
+        name: asset.fileName || 'receipt.jpg',
+        type: asset.mimeType || 'image/jpeg',
+      });
+    }
+  };
+
+  const handleRemoveReceipt = () => {
+    setReceiptUri(null);
+    setReceiptFile(null);
+  };
+
   const handleSave = async () => {
     if (!selectedContributor || amount === '0' || amount === '0.00') {
       return;
@@ -149,11 +184,30 @@ export default function AddContributionScreen() {
       setSaving(true);
       const amountValue = parseFloat(amount);
       
+      let receiptId: string | undefined;
+      
+      // Upload receipt first if attached
+      if (receiptFile) {
+        setIsUploadingReceipt(true);
+        try {
+          const uploadResponse = await uploadReceipt({
+            file: receiptFile,
+          });
+          receiptId = uploadResponse.receipt_id;
+        } catch (uploadError) {
+          console.error('Receipt upload failed:', uploadError);
+          Alert.alert('Warning', 'Receipt upload failed, but contribution will still be saved.');
+        } finally {
+          setIsUploadingReceipt(false);
+        }
+      }
+      
       await createContribution({
         recorded_for: selectedContributor,
         amount: amountValue,
         category: selectedCategory,
         context: note || undefined,
+        receipt_id: receiptId,
       });
       
       router.replace('/leaderboard');
@@ -227,9 +281,9 @@ export default function AddContributionScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={styles.handle} />
 
-      <View style={styles.header}>
+      {/* <View style={styles.header}>
         <Text style={[styles.headerLabel, { color: colors.textSecondary }]}>NEW CONTRIBUTION</Text>
-      </View>
+      </View> */}
 
       <ScrollView 
         style={styles.scrollView} 
@@ -369,6 +423,34 @@ export default function AddContributionScreen() {
               />
             </View>
           </View>
+
+          <View style={styles.fieldContainer}>
+            <View style={styles.labelRow}>
+              <MaterialIcons name="receipt" size={20} color={colors.primary} />
+              <Text style={[styles.labelText, { color: colors.text }]}>Receipt (Optional)</Text>
+            </View>
+            {receiptUri ? (
+              <View style={[styles.receiptPreview, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
+                <Image source={{ uri: receiptUri }} style={styles.receiptImage} />
+                <View style={styles.receiptActions}>
+                  <Pressable style={styles.receiptRemoveBtn} onPress={handleRemoveReceipt}>
+                    <MaterialIcons name="close" size={20} color="#ef4444" />
+                    <Text style={styles.receiptRemoveText}>Remove</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : (
+              <Pressable 
+                style={[styles.receiptButton, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
+                onPress={handleReceiptPick}
+              >
+                <MaterialIcons name="add-photo-alternate" size={24} color={colors.textSecondary} />
+                <Text style={[styles.receiptButtonText, { color: colors.textSecondary }]}>
+                  Attach receipt image
+                </Text>
+              </Pressable>
+            )}
+          </View>
         </View>
 
         <View style={styles.keypad}>
@@ -452,4 +534,11 @@ const styles = StyleSheet.create({
   saveButton: { backgroundColor: '#5bee2b', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, borderRadius: 16, gap: 8 },
   saveButtonDisabled: { opacity: 0.6 },
   saveButtonText: { fontSize: 18, fontWeight: '700', color: '#1a1a1a' },
+  receiptPreview: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, borderWidth: 1, padding: 8, gap: 12 },
+  receiptImage: { width: 60, height: 60, borderRadius: 8 },
+  receiptActions: { flex: 1 },
+  receiptRemoveBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  receiptRemoveText: { fontSize: 14, fontWeight: '600', color: '#ef4444' },
+  receiptButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', gap: 8 },
+  receiptButtonText: { fontSize: 14, fontWeight: '600' },
 });

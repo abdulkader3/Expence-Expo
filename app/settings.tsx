@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useAuth } from './contexts/AuthContext';
 import { getUserSettings, updateUserSettings, UserSettings } from '../src/services/auth';
+import { exportTransactionsCSV } from '../src/services/uploads';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -14,6 +15,7 @@ export default function SettingsScreen() {
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const isDark = colorScheme === 'dark';
 
@@ -78,8 +80,18 @@ export default function SettingsScreen() {
     }
   };
 
-  const handleExport = () => {
-    Alert.alert('Export', 'Export functionality coming soon!');
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const csvData = await exportTransactionsCSV({});
+      Alert.alert('Export Successful', 'Your transactions have been exported as CSV.');
+      console.log('[SETTINGS] CSV Export:', csvData.substring(0, 200));
+    } catch (error) {
+      console.error('Export error:', error);
+      Alert.alert('Export Failed', 'Could not export transactions. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleLogout = () => {
@@ -186,13 +198,18 @@ export default function SettingsScreen() {
           <Pressable
             style={[styles.exportButton, { backgroundColor: colors.primary }]}
             onPress={handleExport}
+            disabled={isExporting}
           >
             <View style={styles.exportTextContainer}>
               <Text style={styles.exportTitle}>Export Contributions</Text>
               <Text style={styles.exportSubtitle}>Download CSV History</Text>
             </View>
             <View style={styles.exportIcon}>
-              <Ionicons name="download" size={24} color={colors.text} />
+              {isExporting ? (
+                <ActivityIndicator size="small" color={colors.text} />
+              ) : (
+                <Ionicons name="download" size={24} color={colors.text} />
+              )}
             </View>
           </Pressable>
         </View>

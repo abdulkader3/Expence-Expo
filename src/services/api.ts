@@ -124,6 +124,13 @@ export const api = {
   delete: <T>(endpoint: string, options?: RequestOptions) =>
     request<T>(endpoint, { ...options, method: 'DELETE' }),
 
+  upload: <T>(endpoint: string, formData: FormData) =>
+    request<T>(endpoint, {
+      method: 'POST',
+      body: formData,
+      headers: {},
+    }),
+
   healthCheck: async (): Promise<{ status: string }> => {
     const healthUrl = `${API_BASE_URL.replace('/api/v1', '')}/health`;
     console.log(`[API] Health check URL: ${healthUrl}`);
