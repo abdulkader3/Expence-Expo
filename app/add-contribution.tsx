@@ -299,14 +299,14 @@ export default function AddContributionScreen() {
       {
         translateX: scrollY.interpolate({
           inputRange: [0, scrollDistance],
-          outputRange: [0, 140],
+          outputRange: [0, 200],
           extrapolate: 'clamp',
         }),
       },
       {
         translateY: scrollY.interpolate({
           inputRange: [0, scrollDistance],
-          outputRange: [0, 150],
+          outputRange: [0, 600],
           extrapolate: 'clamp',
         }),
       },
@@ -346,7 +346,7 @@ export default function AddContributionScreen() {
               <MaterialIcons name="payments" size={20} color={colors.primary} />
               <Text style={[styles.labelText, { color: colors.text }]}>Contributor</Text>
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.contributorsScroll}>
+            <ScrollView showsHorizontalScrollIndicator={false} style={styles.contributorsScroll}>
               {loadingContributors ? (
                 <View style={styles.loadingContainer}>
                   <ActivityIndicator size="small" color={colors.primary} />
@@ -543,8 +543,8 @@ const styles = StyleSheet.create({
   fieldContainer: { marginBottom: 24 },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
   labelText: { fontSize: 16, fontWeight: '700' },
-  contributorsScroll: { flexDirection: 'row' },
-  contributorButton: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 4, paddingRight: 16, paddingVertical: 4, borderRadius: 24, gap: 8, marginRight: 12, borderWidth: 2 },
+  contributorsScroll: { flexDirection: 'column' },
+  contributorButton: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 4, paddingRight: 16, paddingVertical: 4, borderRadius: 24, gap: 8, marginBottom: 12, borderWidth: 2, alignSelf: 'flex-start' },
   contributorButtonSelected: { backgroundColor: '#5bee2b' },
   contributorAvatar: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   avatarImage: { width: '100%', height: '100%' },
