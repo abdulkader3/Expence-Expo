@@ -1,6 +1,6 @@
  
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, Image, ScrollView, useColorScheme, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Image, ScrollView, useColorScheme, TextInput, Alert, ActivityIndicator, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -61,7 +61,7 @@ export default function PartnerLedgerScreen() {
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      allowsEditing: true,
+      allowsEditing: Platform.OS === 'ios',
       aspect: [1, 1],
       quality: 0.8,
     });

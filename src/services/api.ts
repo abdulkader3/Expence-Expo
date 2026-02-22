@@ -1,5 +1,6 @@
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.0.103:5000/api/v1';
 const REQUEST_TIMEOUT = 10000; // 10 seconds
+const UPLOAD_TIMEOUT = 60000; // 60 seconds for uploads
 
 export class ApiError extends Error {
   constructor(
@@ -30,13 +31,19 @@ async function request<T>(
     url += `?${searchParams.toString()}`;
   }
 
-  const headers: HeadersInit = {
+  const isFormData = fetchOptions.body instanceof FormData;
+  const timeout = isFormData ? UPLOAD_TIMEOUT : REQUEST_TIMEOUT;
+  
+  const headers: HeadersInit = isFormData ? {} : {
     'Content-Type': 'application/json',
     ...fetchOptions.headers,
   };
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+    console.log(`[API] Request timed out after ${timeout}ms`);
+  }, timeout);
 
   try {
     console.log(`[API] ${fetchOptions.method || 'GET'} ${url}`);
@@ -81,7 +88,7 @@ async function request<T>(
     clearTimeout(timeoutId);
     
     if (error instanceof Error && error.name === 'AbortError') {
-      console.log(`[API] Request timed out after ${REQUEST_TIMEOUT}ms`);
+      console.log(`[API] Request timed out after ${timeout}ms`);
       throw new ApiError('Request timed out', 0, undefined, {}, true);
     }
     
@@ -89,8 +96,10 @@ async function request<T>(
     if (error instanceof ApiError) {
       throw error;
     }
+    const errorMessage = error instanceof Error ? error.message : 'Network request failed';
+    console.log(`[API] Error message: ${errorMessage}`);
     throw new ApiError(
-      error instanceof Error ? error.message : 'Network request failed',
+      errorMessage,
       0
     );
   }

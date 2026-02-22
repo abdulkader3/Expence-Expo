@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, Image, useColorScheme, Animated, Keyboard, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, Image, useColorScheme, Animated, Keyboard, ActivityIndicator, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -158,7 +158,7 @@ export default function AddContributionScreen() {
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      allowsEditing: true,
+      allowsEditing: Platform.OS === 'ios',
       quality: 0.8,
     });
 
