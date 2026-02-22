@@ -61,7 +61,7 @@ export default function SignupScreen() {
   const handleSignup = async () => {
     console.log("========== REGISTER DEBUG START ==========");
     console.log("Register pressed");
-    console.log("API Base URL:", 'http://192.168.0.103:3000/api/v1');
+    console.log("API Base URL:", process.env.EXPO_PUBLIC_API_URL || 'https://husband-expense-app-backend.onrender.com/api/v1');
     
     setGeneralError('');
     setErrors({});

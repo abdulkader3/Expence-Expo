@@ -41,7 +41,7 @@ export default function HomeScreen() {
 
     setIsLoading(true);
     try {
-      const response = await fetch('http://192.168.0.103:5000/health');
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL?.replace('/api/v1', '') || 'https://husband-expense-app-backend.onrender.com'}/health`);
       const data = await response.json();
       console.log('Health response:', data);
       Alert.alert('Backend Connected Successfully');

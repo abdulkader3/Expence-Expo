@@ -10,6 +10,62 @@ import { getCurrentUser, UserResponse } from '@/src/services/auth';
 import { uploadReceipt } from '@/src/services/uploads';
 import { ApiError } from '@/src/services/api';
 
+interface ToastProps {
+  visible: boolean;
+  message: string;
+  type: 'loading' | 'success' | 'error';
+  isDark: boolean;
+}
+
+const Toast = ({ visible, message, type, isDark }: ToastProps) => {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(-20)).current;
+
+  useEffect(() => {
+    if (visible) {
+      Animated.parallel([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateY, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(opacity, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateY, {
+          toValue: -20,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [visible]);
+
+  if (!visible) return null;
+
+  const bgColor = type === 'loading' ? (isDark ? '#2a3f27' : '#e5e5e5') : type === 'success' ? '#22c55e' : '#ef4444';
+  const textColor = type === 'loading' ? (isDark ? '#ffffff' : '#1a1a1a') : '#ffffff';
+
+  return (
+    <Animated.View style={[styles.toast, { backgroundColor: bgColor, opacity, transform: [{ translateY }] }]}>
+      {type === 'loading' && <ActivityIndicator size="small" color={textColor} style={styles.toastIndicator} />}
+      {type === 'success' && <MaterialIcons name="check-circle" size={18} color={textColor} style={styles.toastIcon} />}
+      {type === 'error' && <MaterialIcons name="error" size={18} color={textColor} style={styles.toastIcon} />}
+      <Text style={[styles.toastText, { color: textColor }]}>{message}</Text>
+    </Animated.View>
+  );
+};
+
 interface ContributorOption {
   id: string;
   name: string;
@@ -47,6 +103,9 @@ export default function AddContributionScreen() {
   const [receiptFile, setReceiptFile] = useState<{ uri: string; name: string; type: string } | null>(null);
   const [isUploadingReceipt, setIsUploadingReceipt] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserResponse | null>(null);
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'loading' | 'success' | 'error'>('loading');
 
   const categories: Category[] = [...customCategories];
 
@@ -77,7 +136,17 @@ export default function AddContributionScreen() {
       };
 
       const partnerOptions: ContributorOption[] = partnersData.data
-        .filter((p: Partner) => p.id !== user.id)
+        .filter((p: Partner & { created_by?: string; email?: string }) => {
+          const partnerId = String(p.id).toLowerCase();
+          const userIdStr = String(user.id).toLowerCase();
+          const idMatch = partnerId === userIdStr;
+          const nameMatch = String(p.name).toLowerCase().trim() === String(user.name).toLowerCase().trim();
+          const avatarMatch = p.avatar_url && user.avatar_url && 
+            String(p.avatar_url).toLowerCase() === String(user.avatar_url).toLowerCase();
+          
+          const isOwnProfile = idMatch || nameMatch || avatarMatch;
+          return !isOwnProfile;
+        })
         .map((p: Partner) => ({
           id: p.id,
           name: p.name,
@@ -198,6 +267,10 @@ export default function AddContributionScreen() {
 
     try {
       setSaving(true);
+      setToastType('loading');
+      setToastMessage('Saving contribution...');
+      setToastVisible(true);
+      
       const amountValue = parseFloat(amount);
       
       let receiptId: string | undefined;
@@ -227,7 +300,12 @@ export default function AddContributionScreen() {
           receipt_id: receiptId,
         });
         
-        router.replace('/leaderboard');
+        setToastType('success');
+        setToastMessage('Contribution added successfully!');
+        setTimeout(() => {
+          setToastVisible(false);
+          router.replace('/leaderboard');
+        }, 1200);
       } catch (contributionError) {
         // Check if it's a "Partner not found" error
         if (contributionError instanceof ApiError && 
@@ -252,7 +330,12 @@ export default function AddContributionScreen() {
               receipt_id: receiptId,
             });
             
-            router.replace('/leaderboard');
+            setToastType('success');
+            setToastMessage('Contribution added successfully!');
+            setTimeout(() => {
+              setToastVisible(false);
+              router.replace('/leaderboard');
+            }, 1200);
           } else {
             throw contributionError;
           }
@@ -262,6 +345,9 @@ export default function AddContributionScreen() {
       }
     } catch (error) {
       console.error('[ADD-CONTRIBUTION] Error saving contribution:', error);
+      setToastType('error');
+      setToastMessage('Failed to save. Please try again.');
+      setTimeout(() => setToastVisible(false), 2000);
       Alert.alert('Error', 'Failed to save contribution. Please try again.');
     } finally {
       setSaving(false);
@@ -504,6 +590,8 @@ export default function AddContributionScreen() {
         </View>
       </ScrollView>
 
+      <Toast visible={toastVisible} message={toastMessage} type={toastType} isDark={isDark} />
+
       <View style={[styles.footer, { backgroundColor: isDark ? 'rgba(30,46,25,0.9)' : 'rgba(255,255,255,0.9)', borderTopColor: colors.border }]}>
         <View style={styles.footerInfo}>
           <MaterialIcons name="book" size={16} color={colors.textSecondary} />
@@ -585,4 +673,8 @@ const styles = StyleSheet.create({
   receiptRemoveText: { fontSize: 14, fontWeight: '600', color: '#ef4444' },
   receiptButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', gap: 8 },
   receiptButtonText: { fontSize: 14, fontWeight: '600' },
+  toast: { position: 'absolute', top: 60, left: 24, right: 24, flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 12, gap: 10, zIndex: 1000, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4, elevation: 5 },
+  toastIndicator: { marginRight: 2 },
+  toastIcon: { marginRight: 2 },
+  toastText: { fontSize: 14, fontWeight: '600', flex: 1 },
 });
