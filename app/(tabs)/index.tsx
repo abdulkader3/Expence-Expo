@@ -24,7 +24,7 @@ export default function HomeScreen() {
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
-      const hours = now.getHours();
+      const hours = now.getHours() % 12 || 12;
       const minutes = now.getMinutes();
       setCurrentTime(`${hours}:${minutes.toString().padStart(2, '0')}`);
     };
