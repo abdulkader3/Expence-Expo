@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useAuth } from './contexts/AuthContext';
-import { getUserSettings, updateUserSettings, UserSettings } from '../src/services/auth';
+import { getUserSettings, updateUserSettings, UserSettings, getCurrentUser, UserResponse } from '../src/services/auth';
 import { exportTransactionsCSV } from '../src/services/uploads';
 
 export default function SettingsScreen() {
@@ -13,6 +13,7 @@ export default function SettingsScreen() {
   const colorScheme = useColorScheme();
   const { user, logout } = useAuth();
   const [settings, setSettings] = useState<UserSettings | null>(null);
+  const [currentUser, setCurrentUser] = useState<UserResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -41,8 +42,12 @@ export default function SettingsScreen() {
 
   const loadSettings = async () => {
     try {
-      const data = await getUserSettings();
-      setSettings(data);
+      const [settingsData, userData] = await Promise.all([
+        getUserSettings(),
+        getCurrentUser(),
+      ]);
+      setSettings(settingsData);
+      setCurrentUser(userData);
     } catch (error) {
       console.error('Error loading settings:', error);
     } finally {
@@ -127,12 +132,18 @@ export default function SettingsScreen() {
           <Text style={[styles.headerTitle, { color: colors.text }]}>Settings</Text>
         </View>
         <Pressable style={styles.profileContainer} onPress={navigateToProfile}>
-          <Image
-            source={{
-              uri: user?.avatar_url || 'https://lh3.googleusercontent.com/aida-public/AB6AXuDwAtEBECqUxar-x2qViJXUmofg69j_7RFMw91TWgOprw9urMtxeg390CYpiwk9kV8RBmBy6OtHyMkCJQ4-FsSWXVMGZknh3tuo2mpG3bONomrenlDOcQIXRBcZ7Gn1qd1eZmocbsou_JoCf3j5ZKdNPohU8XgehiCweFB-mpQFQsOZHe6U3cQ0oPA--ln32KNT7UbGS88e0PIvOw7JmOuG5ApmKdAoM3PO8_0IMW2Ey_0pbIWrnJT2JrhbUq6YNN2tqVXc0-Clzcrh',
-            }}
-            style={styles.profileImage}
-          />
+          {currentUser?.avatar_url ? (
+            <Image
+              source={{ uri: currentUser.avatar_url }}
+              style={styles.profileImage}
+            />
+          ) : (
+            <View style={[styles.profileImage, styles.profileImagePlaceholder, { backgroundColor: colors.primary }]}>
+              <Text style={styles.profileImagePlaceholderText}>
+                {currentUser?.name?.charAt(0)?.toUpperCase() || user?.name?.charAt(0)?.toUpperCase() || '?'}
+              </Text>
+            </View>
+          )}
           <View style={[styles.onlineIndicator, { backgroundColor: colors.primary }]} />
         </Pressable>
       </View>
@@ -266,6 +277,8 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
   profileContainer: { position: 'relative' },
   profileImage: { width: 56, height: 56, borderRadius: 28, borderWidth: 4, borderColor: 'rgba(112,235,71,0.2)' },
+  profileImagePlaceholder: { alignItems: 'center', justifyContent: 'center' },
+  profileImagePlaceholderText: { fontSize: 24, fontWeight: '800', color: '#131811' },
   onlineIndicator: { position: 'absolute', bottom: 0, right: 0, width: 16, height: 16, borderRadius: 8, borderWidth: 3, borderColor: '#fff' },
   scrollView: { flex: 1, paddingHorizontal: 16, paddingTop: 24 },
   section: { marginBottom: 24 },
