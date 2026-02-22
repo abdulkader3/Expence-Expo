@@ -1,11 +1,13 @@
  
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, Image, ScrollView, useColorScheme, TextInput, Alert, ActivityIndicator, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from './contexts/AuthContext';
+import { getCurrentUser, UserResponse } from '../src/services/auth';
+import { getTransactions, Transaction } from '../src/services/transactions';
 
 const categories = [
   { id: 'all', label: 'All' },
@@ -14,15 +16,25 @@ const categories = [
   { id: 'supplies', label: 'Supplies', icon: 'bag-handle' },
 ];
 
-const transactions = {
-  today: [
-    { id: 1, title: 'Team Lunch', subtitle: 'Shake Shack • 12:30 PM', amount: '+$45.50', tag: 'Split', icon: 'pizza', color: '#f97316', bgColor: '#fff7ed' },
-    { id: 2, title: 'Flight to SFO', subtitle: 'Delta Airlines • 08:00 AM', amount: '+$320.00', tag: 'Full', icon: 'airplane', color: '#3b82f6', bgColor: '#eff6ff' },
-  ],
-  yesterday: [
-    { id: 3, title: 'Figma Subscription', subtitle: 'Software • Yearly', amount: '+$144.00', tag: 'Settled', tagColor: '#ef4444', icon: 'layers', color: '#a855f7', bgColor: '#faf5ff' },
-    { id: 4, title: 'Office Supplies', subtitle: 'Staples • 4:20 PM', amount: '+$22.50', tag: 'Paid', icon: 'receipt', color: '#6b7280', bgColor: '#f3f4f6', opacity: 0.6 },
-  ],
+const categoryColors: Record<string, { color: string; bgColor: string }> = {
+  food: { color: '#f97316', bgColor: '#fff7ed' },
+  travel: { color: '#3b82f6', bgColor: '#eff6ff' },
+  supplies: { color: '#6b7280', bgColor: '#f3f4f6' },
+  software: { color: '#a855f7', bgColor: '#faf5ff' },
+  default: { color: '#6b7280', bgColor: '#f3f4f6' },
+};
+
+const getCategoryColor = (category: string) => categoryColors[category.toLowerCase()] || categoryColors.default;
+
+const getCategoryIcon = (category: string): string => {
+  const iconMap: Record<string, string> = {
+    food: 'restaurant',
+    travel: 'airplane',
+    supplies: 'bag-handle',
+    software: 'layers',
+    default: 'receipt',
+  };
+  return iconMap[category.toLowerCase()] || iconMap.default;
 };
 
 export default function PartnerLedgerScreen() {
@@ -36,20 +48,45 @@ export default function PartnerLedgerScreen() {
   const [editedCompany, setEditedCompany] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [currentUser, setCurrentUser] = useState<UserResponse | null>(null);
+  const [userTransactions, setUserTransactions] = useState<Transaction[]>([]);
+  const [isFetchingData, setIsFetchingData] = useState(true);
 
   const isDark = colorScheme === 'dark';
 
   useEffect(() => {
-    refreshUser();
+    fetchUserData();
   }, []);
 
-  useEffect(() => {
-    if (user) {
-      setEditedName(user.name || '');
-      setEditedPhone(user.phone || '');
-      setEditedCompany(user.company || '');
+  const fetchUserData = async () => {
+    setIsFetchingData(true);
+    try {
+      const userResponse = await getCurrentUser();
+      setCurrentUser(userResponse);
+      setEditedName(userResponse.name || '');
+      setEditedPhone(userResponse.phone || '');
+      setEditedCompany(userResponse.company || '');
+
+      const transactionsResponse = await getTransactions({ 
+        recorded_by: userResponse.id,
+        sort_by: 'date_desc',
+        per_page: 50
+      });
+      setUserTransactions(transactionsResponse.data);
+    } catch (error) {
+      console.error('[PARTNER_LEDGER] Error fetching data:', error);
+    } finally {
+      setIsFetchingData(false);
     }
-  }, [user]);
+  };
+
+  useEffect(() => {
+    if (currentUser) {
+      setEditedName(currentUser.name || '');
+      setEditedPhone(currentUser.phone || '');
+      setEditedCompany(currentUser.company || '');
+    }
+  }, [currentUser]);
 
   const handleAvatarPick = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -116,56 +153,98 @@ export default function PartnerLedgerScreen() {
     tabInactive: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
   };
 
-  const renderTransaction = (tx: any) => (
-    <Pressable
-      key={tx.id}
-      style={[
-        styles.transactionCard,
-        { backgroundColor: colors.surface, opacity: tx.opacity || 1 },
-      ]}
-    >
-      <View
+  const totalContributed = useMemo(() => {
+    return userTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+  }, [userTransactions]);
+
+  const isTopContributor = totalContributed > 500;
+
+  const dynamicCategories = useMemo(() => {
+    const categorySet = new Set<string>();
+    userTransactions.forEach(tx => {
+      if (tx.category) categorySet.add(tx.category.toLowerCase());
+    });
+    
+    const categoryMap: Record<string, { id: string; label: string; icon: string }> = {
+      food: { id: 'food', label: 'Food & Drink', icon: 'restaurant' },
+      travel: { id: 'travel', label: 'Travel', icon: 'airplane' },
+      supplies: { id: 'supplies', label: 'Supplies', icon: 'bag-handle' },
+      software: { id: 'software', label: 'Software', icon: 'layers' },
+    };
+
+    const categoriesArray = [{ id: 'all', label: 'All', icon: 'apps' }];
+    categorySet.forEach(cat => {
+      if (categoryMap[cat]) {
+        categoriesArray.push(categoryMap[cat]);
+      }
+    });
+    
+    return categoriesArray;
+  }, [userTransactions]);
+
+  const filteredTransactions = useMemo(() => {
+    if (selectedCategory === 'all') return userTransactions;
+    return userTransactions.filter(tx => 
+      tx.category?.toLowerCase() === selectedCategory
+    );
+  }, [userTransactions, selectedCategory]);
+
+  const renderTransaction = (tx: Transaction) => {
+    const catColor = getCategoryColor(tx.category || 'default');
+    const iconName = getCategoryIcon(tx.category || 'default') as any;
+    const date = new Date(tx.date);
+    const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    
+    return (
+      <Pressable
+        key={tx.id}
         style={[
-          styles.transactionIcon,
-          { backgroundColor: isDark ? `${tx.color}20` : tx.bgColor },
+          styles.transactionCard,
+          { backgroundColor: colors.surface },
         ]}
       >
-        <Ionicons name={tx.icon as any} size={24} color={tx.color} />
-      </View>
-      <View style={styles.transactionContent}>
-        <Text style={[styles.transactionTitle, { color: colors.text }]} numberOfLines={1}>
-          {tx.title}
-        </Text>
-        <Text style={[styles.transactionSubtitle, { color: colors.textSubtle }]}>
-          {tx.subtitle}
-        </Text>
-      </View>
-      <View style={styles.transactionRight}>
-        <Text style={[styles.transactionAmount, { color: isDark ? colors.primary : colors.primaryDark }]}>
-          {tx.amount}
-        </Text>
         <View
           style={[
-            styles.transactionTag,
-            {
-              backgroundColor: tx.tagColor
-                ? isDark ? `${tx.tagColor}20` : `${tx.tagColor}15`
-                : isDark ? 'rgba(255,255,255,0.05)' : '#f3f4f6',
-            },
+            styles.transactionIcon,
+            { backgroundColor: isDark ? `${catColor.color}20` : catColor.bgColor },
           ]}
         >
-          <Text
-            style={[
-              styles.transactionTagText,
-              { color: tx.tagColor || colors.textSubtle },
-            ]}
-          >
-            {tx.tag}
+          <Ionicons name={iconName} size={24} color={catColor.color} />
+        </View>
+        <View style={styles.transactionContent}>
+          <Text style={[styles.transactionTitle, { color: colors.text }]} numberOfLines={1}>
+            {tx.context || tx.description || 'Contribution'}
+          </Text>
+          <Text style={[styles.transactionSubtitle, { color: colors.textSubtle }]}>
+            {tx.recorded_for_name || 'Unknown'} • {dateStr} • {timeStr}
           </Text>
         </View>
-      </View>
-    </Pressable>
-  );
+        <View style={styles.transactionRight}>
+          <Text style={[styles.transactionAmount, { color: isDark ? colors.primary : colors.primaryDark }]}>
+            +${tx.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+          </Text>
+          <View
+            style={[
+              styles.transactionTag,
+              {
+                backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#f3f4f6',
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.transactionTagText,
+                { color: colors.textSubtle },
+              ]}
+            >
+              {tx.category || 'Other'}
+            </Text>
+          </View>
+        </View>
+      </Pressable>
+    );
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -187,7 +266,7 @@ export default function PartnerLedgerScreen() {
           <Pressable style={styles.avatarContainer} onPress={handleAvatarPick} disabled={isUploadingAvatar}>
             <Image
               source={{
-                uri: user?.avatar_url || 'https://lh3.googleusercontent.com/aida-public/AB6AXuBfkbT8HE2Gk4Rxx_giLvhdwR_VVLODiuzRGljQ5yY-TzqvG34OigMynOn1tppq4a8ufekAMyylAsxQS2Phtt4c2p0Bf7pSmTRByeJCOZJHGfg6g7oOAmHUgpqbw7IA4ChhCrZmGLANwRyuW6fz_RWyQsGVrz6Iz1tm3TP3ny7gPLjI4kx9r9XXoA5E4dblH2e1Dqxsxetpzd6nCsGKtApk6-ZGVR-rILeb8AgMgkmiTmpt-El11SfeZowaBiq84F_D1QR_gjJ318BH',
+                uri: currentUser?.avatar_url || user?.avatar_url || 'https://lh3.googleusercontent.com/aida-public/AB6AXuBfkbT8HE2Gk4Rxx_giLvhdwR_VVLODiuzRGljQ5yY-TzqvG34OigMynOn1tppq4a8ufekAMyylAsxQS2Phtt4c2p0Bf7pSmTRByeJCOZJHGfg6g7oOAmHUgpqbw7IA4ChhCrZmGLANwRyuW6fz_RWyQsGVrz6Iz1tm3TP3ny7gPLjI4kx9r9XXoA5E4dblH2e1Dqxsxetpzd6nCsGKtApk6-ZGVR-rILeb8AgMgkmiTmpt-El11SfeZowaBiq84F_D1QR_gjJ318BH',
               }}
               style={styles.avatar}
             />
@@ -251,11 +330,11 @@ export default function PartnerLedgerScreen() {
           ) : (
             <>
               <Pressable style={styles.editProfileButton} onPress={() => setIsEditing(true)}>
-                <Text style={[styles.userName, { color: colors.text }]}>{user?.name || 'User'}</Text>
+                <Text style={[styles.userName, { color: colors.text }]}>{currentUser?.name || user?.name || 'User'}</Text>
                 <Ionicons name="pencil" size={16} color={colors.textSubtle} style={{ marginLeft: 8 }} />
               </Pressable>
               <Text style={styles.userRole}>
-                {user?.company || 'No company'} {user?.email ? `• ${user.email}` : ''}
+                {currentUser?.company || user?.company || 'No company'} {currentUser?.email || user?.email ? `• ${currentUser?.email || user?.email}` : ''}
               </Text>
             </>
           )}
@@ -264,12 +343,16 @@ export default function PartnerLedgerScreen() {
             <Text style={styles.contributionLabel}>Total Contributed</Text>
             <View style={styles.contributionAmount}>
               <Text style={[styles.contributionPlus, { color: colors.primary }]}>+</Text>
-              <Text style={[styles.contributionValue, { color: colors.text }]}>$1,250.00</Text>
+              <Text style={[styles.contributionValue, { color: colors.text }]}>
+                ${totalContributed.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </Text>
             </View>
-            <View style={styles.topContributorBadge}>
-              <Ionicons name="star" size={14} color={isDark ? '#facc15' : '#ca8a04'} />
-              <Text style={styles.topContributorText}>Top Contributor</Text>
-            </View>
+            {isTopContributor && (
+              <View style={styles.topContributorBadge}>
+                <Ionicons name="star" size={14} color={isDark ? '#facc15' : '#ca8a04'} />
+                <Text style={styles.topContributorText}>Top Contributor</Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -279,7 +362,7 @@ export default function PartnerLedgerScreen() {
           style={styles.categoriesScroll}
           contentContainerStyle={styles.categoriesContainer}
         >
-          {categories.map((cat) => (
+          {dynamicCategories.map((cat) => (
             <Pressable
               key={cat.id}
               style={[
@@ -316,13 +399,19 @@ export default function PartnerLedgerScreen() {
         </ScrollView>
 
         <View style={styles.transactionsSection}>
-          <Text style={[styles.dateHeader, { color: colors.textSubtle }]}>Today</Text>
-          {transactions.today.map(renderTransaction)}
-
-          <Text style={[styles.dateHeader, { color: colors.textSubtle, marginTop: 16 }]}>
-            Yesterday
-          </Text>
-          {transactions.yesterday.map(renderTransaction)}
+          {isFetchingData ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={[styles.loadingText, { color: colors.textSubtle }]}>Loading transactions...</Text>
+            </View>
+          ) : filteredTransactions.length > 0 ? (
+            filteredTransactions.map(renderTransaction)
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Text style={[styles.emptyText, { color: colors.textSubtle }]}>No transactions yet</Text>
+              <Text style={[styles.emptySubtext, { color: colors.textSubtle }]}>Start contributing to see your history here</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
 
@@ -436,6 +525,11 @@ const styles = StyleSheet.create({
   categoryIcon: { marginRight: 8 },
   categoryText: { fontSize: 14 },
   transactionsSection: { paddingHorizontal: 24, paddingBottom: 100 },
+  loadingContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: 48 },
+  loadingText: { fontSize: 14, marginTop: 12 },
+  emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: 48 },
+  emptyText: { fontSize: 16, fontWeight: '600' },
+  emptySubtext: { fontSize: 14, marginTop: 4 },
   dateHeader: {
     fontSize: 12,
     fontWeight: '700',
