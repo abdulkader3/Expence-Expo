@@ -1,6 +1,6 @@
 {
   "expo": {
-"name": "PocketPartner",
+    "name": "PocketPartner",
     "slug": "PocketPartner",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -42,6 +42,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "281e0b0b-e743-44a3-a0bb-b24f58406a14"
+      }
     }
   }
 }
