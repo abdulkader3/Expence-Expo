@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://husband-expense-app-backend.onrender.com/api/v1';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
 const REQUEST_TIMEOUT = 10000; // 10 seconds
 const UPLOAD_TIMEOUT = 60000; // 60 seconds for uploads
 

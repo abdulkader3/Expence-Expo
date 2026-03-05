@@ -242,12 +242,13 @@ export default function BudgetScreen() {
     setSelectedSaleForAllocation(sale);
     setSelectedCostForAllocation(null);
     setAllocationAmount('');
+    loadCostEntries();
     setAllocationModalVisible(true);
   };
 
   const handleSelectCostForAllocation = (cost: CostEntry) => {
     setSelectedCostForAllocation(cost);
-    const remaining = cost.total_cost - (cost.allocated_amount || 0);
+    const remaining = cost.remaining_amount ?? (cost.total_cost - (cost.allocated_amount || 0));
     setAllocationAmount(String(remaining));
   };
 
@@ -263,7 +264,7 @@ export default function BudgetScreen() {
       return;
     }
 
-    const remaining = selectedCostForAllocation.total_cost - (selectedCostForAllocation.allocated_amount || 0);
+    const remaining = selectedCostForAllocation.remaining_amount ?? (selectedCostForAllocation.total_cost - (selectedCostForAllocation.allocated_amount || 0));
     if (amount > remaining) {
       Alert.alert('Validation Error', `Allocation amount cannot exceed remaining amount (${formatCurrency(remaining, 'BDT')})`);
       return;
@@ -618,8 +619,8 @@ export default function BudgetScreen() {
                 <ActivityIndicator color={colors.primary} />
               ) : costEntries.length > 0 ? (
                 <View style={{ gap: 8, marginBottom: 20 }}>
-                  {costEntries.filter(c => (c.total_cost - (c.allocated_amount || 0)) > 0).map((cost) => {
-                    const remaining = cost.total_cost - (cost.allocated_amount || 0);
+                  {costEntries.filter(c => (c.remaining_amount ?? (c.total_cost - (c.allocated_amount || 0))) > 0).map((cost) => {
+                    const remaining = cost.remaining_amount ?? (cost.total_cost - (cost.allocated_amount || 0));
                     return (
                       <Pressable
                         key={cost.id}
@@ -638,19 +639,37 @@ export default function BudgetScreen() {
               ) : (
                 <Text style={{ color: colors.textSecondary, marginBottom: 20 }}>No cost entries available</Text>
               )}
-              {selectedCostForAllocation && (
-                <View style={styles.inputGroup}>
-                  <Text style={[styles.label, { color: colors.text }]}>Allocation Amount</Text>
-                  <TextInput
-                    style={[styles.input, { backgroundColor: colors.inputBg, color: colors.text }]}
-                    value={allocationAmount}
-                    onChangeText={setAllocationAmount}
-                    placeholder="Enter amount"
-                    placeholderTextColor={colors.textSecondary}
-                    keyboardType="decimal-pad"
-                  />
-                </View>
-              )}
+              {selectedCostForAllocation && (() => {
+                const cost = selectedCostForAllocation;
+                const totalCost = cost.total_cost;
+                const allocatedAmount = cost.allocated_amount || 0;
+                const remaining = cost.remaining_amount ?? (totalCost - allocatedAmount);
+                return (
+                  <View style={[styles.inputGroup, { backgroundColor: colors.inputBg, padding: 16, borderRadius: 12, marginBottom: 20 }]}>
+                    <View style={{ marginBottom: 12 }}>
+                      <Text style={[styles.label, { color: colors.textSecondary, fontSize: 12 }]}>Total Cost</Text>
+                      <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700' }}>{formatCurrency(totalCost, cost.currency)}</Text>
+                    </View>
+                    <View style={{ marginBottom: 12 }}>
+                      <Text style={[styles.label, { color: colors.textSecondary, fontSize: 12 }]}>Already Allocated</Text>
+                      <Text style={{ color: colors.success, fontSize: 16, fontWeight: '600' }}>{formatCurrency(allocatedAmount, cost.currency)}</Text>
+                    </View>
+                    <View style={{ marginBottom: 16 }}>
+                      <Text style={[styles.label, { color: colors.textSecondary, fontSize: 12 }]}>Remaining</Text>
+                      <Text style={{ color: colors.error, fontSize: 16, fontWeight: '600' }}>{formatCurrency(remaining, cost.currency)}</Text>
+                    </View>
+                    <Text style={[styles.label, { color: colors.text }]}>Amount to Allocate</Text>
+                    <TextInput
+                      style={[styles.input, { backgroundColor: colors.cardBg, color: colors.text, borderWidth: 1, borderColor: colors.border }]}
+                      value={allocationAmount}
+                      onChangeText={setAllocationAmount}
+                      placeholder={`Max: ${formatCurrency(remaining, cost.currency)}`}
+                      placeholderTextColor={colors.textSecondary}
+                      keyboardType="decimal-pad"
+                    />
+                  </View>
+                );
+              })()}
             </ScrollView>
             <View style={[styles.modalFooter, { borderTopColor: colors.border }]}>
               <Pressable style={[styles.cancelButton, { backgroundColor: colors.inputBg }]} onPress={closeAllocationModal}>
