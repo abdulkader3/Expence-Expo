@@ -156,6 +156,13 @@ async function requestWithAuthRetry<T>(
   } catch (error) {
     clearTimeout(timeoutId);
 
+    // Log more details about the error for debugging
+    console.log("[API] Error details:", {
+      name: error instanceof Error ? error.name : "Unknown",
+      message: error instanceof Error ? error.message : String(error),
+      status: error instanceof ApiError ? error.status : "unknown",
+    });
+
     if (error instanceof Error && error.name === "AbortError") {
       console.log(`[API] Request timed out after ${timeout}ms`);
       throw new ApiError("Request timed out", 0, undefined, {}, true);

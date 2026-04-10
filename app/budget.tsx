@@ -353,18 +353,33 @@ export default function BudgetScreen() {
 
       setLoading(true);
       try {
-        await createCostEntry({
+        console.log("[BUDGET] Creating cost entry with payload:", {
           description: costDescription.trim(),
-          quantity: qty,
-          unit_cost: unitCost,
-          total_cost: parseFloat(costTotal) || undefined,
+          quantity: Number(qty),
+          unit_cost: Number(unitCost),
+          total_cost: costTotal ? Number(costTotal) : undefined,
           currency: "BDT",
         });
+        const response = await createCostEntry({
+          description: costDescription.trim(),
+          quantity: Number(qty),
+          unit_cost: Number(unitCost),
+          total_cost: costTotal ? Number(costTotal) : undefined,
+          currency: "BDT",
+        });
+        console.log("[BUDGET] Cost entry created successfully:", response);
         Alert.alert("Success", "Cost entry created successfully");
         handleCloseModal();
         loadCostEntries();
       } catch (error: any) {
-        Alert.alert("Error", error.message || "Failed to create cost entry");
+        console.error("[BUDGET] Cost entry error:", error);
+        // Try to extract more details from the error
+        const errorMsg =
+          error?.message ||
+          error?.data?.message ||
+          JSON.stringify(error) ||
+          "Failed to create cost entry";
+        Alert.alert("Error", errorMsg);
       } finally {
         setLoading(false);
       }
