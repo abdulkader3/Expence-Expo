@@ -1,12 +1,20 @@
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { useEffect } from "react";
 import AuthProvider, { useAuth } from "./contexts/AuthContext";
 import { SaveTriggerProvider } from "../src/contexts/SaveTriggerContext";
 import BottomNav from "../components/BottomNav";
 
 function RootLayoutNav() {
   const { isLoggedIn, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && isLoggedIn) {
+      router.replace("/budget");
+    }
+  }, [isLoading, isLoggedIn]);
 
   return (
     <>

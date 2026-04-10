@@ -34,7 +34,7 @@ export default function LoginScreen() {
     try {
       const result = await login({ email, password, device_name: Platform.OS });
       if (result.success) {
-        router.replace('/');
+        router.replace('/budget');
       } else {
         if (result.error) {
           Alert.alert('Login Failed', result.error);
