@@ -1,12 +1,16 @@
-import { api } from './api';
+import { api } from "./api";
 
 export interface CostEntry {
   id: string;
   user_id: string;
   description: string;
+  quantity: number;
+  unit_cost: number;
   total_cost: number;
   allocated_amount: number;
+  allocated_quantity: number;
   remaining_amount: number;
+  remaining_quantity: number;
   currency: string;
   date: string;
   status: string;
@@ -15,7 +19,9 @@ export interface CostEntry {
 
 export interface CreateCostEntryPayload {
   description: string;
-  total_cost: number;
+  quantity: number;
+  unit_cost: number;
+  total_cost?: number;
   currency?: string;
   date?: string;
 }
@@ -24,12 +30,17 @@ export interface CreateCostEntryResponse {
   cost_entry: CostEntry;
 }
 
-export async function createCostEntry(payload: CreateCostEntryPayload): Promise<CreateCostEntryResponse> {
-  console.log('[COST ENTRIES] CREATING COST ENTRY:', payload);
+export async function createCostEntry(
+  payload: CreateCostEntryPayload,
+): Promise<CreateCostEntryResponse> {
+  console.log("[COST ENTRIES] CREATING COST ENTRY:", payload);
 
-  const response = await api.post<CreateCostEntryResponse>('/cost-entries', payload);
+  const response = await api.post<CreateCostEntryResponse>(
+    "/cost-entries",
+    payload,
+  );
 
-  console.log('[COST ENTRIES] COST ENTRY CREATED:', response);
+  console.log("[COST ENTRIES] COST ENTRY CREATED:", response);
 
   return response;
 }
@@ -43,16 +54,18 @@ export interface CostEntriesResponse {
   };
 }
 
-export async function getCostEntries(params: {
-  page?: number;
-  per_page?: number;
-  sort_by?: 'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc';
-  from?: string;
-  to?: string;
-  status?: 'active' | 'fully_allocated' | 'cancelled';
-  q?: string;
-} = {}): Promise<CostEntriesResponse> {
-  console.log('[COST ENTRIES] FETCHING COST ENTRIES:', params);
+export async function getCostEntries(
+  params: {
+    page?: number;
+    per_page?: number;
+    sort_by?: "date_desc" | "date_asc" | "amount_desc" | "amount_asc";
+    from?: string;
+    to?: string;
+    status?: "active" | "fully_allocated" | "cancelled";
+    q?: string;
+  } = {},
+): Promise<CostEntriesResponse> {
+  console.log("[COST ENTRIES] FETCHING COST ENTRIES:", params);
 
   const queryParams: Record<string, string> = {};
 
@@ -64,9 +77,11 @@ export async function getCostEntries(params: {
   if (params.status) queryParams.status = params.status;
   if (params.q) queryParams.q = params.q;
 
-  const response = await api.get<CostEntriesResponse>('/cost-entries', { params: queryParams });
+  const response = await api.get<CostEntriesResponse>("/cost-entries", {
+    params: queryParams,
+  });
 
-  console.log('[COST ENTRIES] RESPONSE:', response);
+  console.log("[COST ENTRIES] RESPONSE:", response);
 
   return response;
 }

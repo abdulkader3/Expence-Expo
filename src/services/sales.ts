@@ -1,4 +1,4 @@
-import { api } from './api';
+import { api } from "./api";
 
 export interface Sale {
   id: string;
@@ -7,7 +7,7 @@ export interface Sale {
   quantity: number;
   sale_total: number;
   currency: string;
-  payment_method: 'cash' | 'bank';
+  payment_method: "cash" | "bank";
   bank_id: string | null;
   bank_name: string | null;
   cash_holder: string | null;
@@ -16,28 +16,68 @@ export interface Sale {
   created_at: string;
 }
 
+export interface ExistingAllocation {
+  cost_id: string;
+  allocation_quantity?: number;
+  allocation_amount?: number;
+}
+
+export interface NewCostAllocation {
+  description: string;
+  quantity: number;
+  unit_cost: number;
+  allocation_quantity?: number;
+  allocation_amount?: number;
+  currency?: string;
+  date?: string;
+}
+
 export interface CreateSalePayload {
   product_name: string;
   quantity?: number;
   sale_total: number;
   currency?: string;
-  payment_method: 'cash' | 'bank';
+  payment_method: "cash" | "bank";
   bank_id?: string;
   bank_name?: string;
   cash_holder?: string;
   date?: string;
+  existing_allocation?: ExistingAllocation;
+  new_cost_allocation?: NewCostAllocation;
+}
+
+export interface AllocationCreated {
+  id: string;
+  sale_id: string;
+  cost_id: string | null;
+  allocated_amount: number;
+  allocation_quantity: number;
+}
+
+export interface NewCostCreated {
+  id: string;
+  description: string;
+  quantity: number;
+  unit_cost: number;
+  total_cost: number;
+  allocated_amount: number;
+  allocated_quantity: number;
 }
 
 export interface CreateSaleResponse {
   sale: Sale;
+  allocations_created?: AllocationCreated[];
+  new_costs_created?: NewCostCreated[];
 }
 
-export async function createSale(payload: CreateSalePayload): Promise<CreateSaleResponse> {
-  console.log('[SALES] CREATING SALE:', payload);
+export async function createSale(
+  payload: CreateSalePayload,
+): Promise<CreateSaleResponse> {
+  console.log("[SALES] CREATING SALE:", payload);
 
-  const response = await api.post<CreateSaleResponse>('/sales', payload);
+  const response = await api.post<CreateSaleResponse>("/sales", payload);
 
-  console.log('[SALES] SALE CREATED:', response);
+  console.log("[SALES] SALE CREATED:", response);
 
   return response;
 }
@@ -51,16 +91,18 @@ export interface SalesResponse {
   };
 }
 
-export async function getSales(params: {
-  page?: number;
-  per_page?: number;
-  sort_by?: 'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc';
-  from?: string;
-  to?: string;
-  payment_method?: 'cash' | 'bank';
-  q?: string;
-} = {}): Promise<SalesResponse> {
-  console.log('[SALES] FETCHING SALES:', params);
+export async function getSales(
+  params: {
+    page?: number;
+    per_page?: number;
+    sort_by?: "date_desc" | "date_asc" | "amount_desc" | "amount_asc";
+    from?: string;
+    to?: string;
+    payment_method?: "cash" | "bank";
+    q?: string;
+  } = {},
+): Promise<SalesResponse> {
+  console.log("[SALES] FETCHING SALES:", params);
 
   const queryParams: Record<string, string> = {};
 
@@ -72,9 +114,11 @@ export async function getSales(params: {
   if (params.payment_method) queryParams.payment_method = params.payment_method;
   if (params.q) queryParams.q = params.q;
 
-  const response = await api.get<SalesResponse>('/sales', { params: queryParams });
+  const response = await api.get<SalesResponse>("/sales", {
+    params: queryParams,
+  });
 
-  console.log('[SALES] RESPONSE:', response);
+  console.log("[SALES] RESPONSE:", response);
 
   return response;
 }
@@ -91,11 +135,11 @@ export interface BanksResponse {
 }
 
 export async function getBanks(): Promise<BanksResponse> {
-  console.log('[BANKS] FETCHING BANKS');
+  console.log("[BANKS] FETCHING BANKS");
 
-  const response = await api.get<BanksResponse>('/banks');
+  const response = await api.get<BanksResponse>("/banks");
 
-  console.log('[BANKS] RESPONSE:', response);
+  console.log("[BANKS] RESPONSE:", response);
 
   return response;
 }
@@ -104,6 +148,8 @@ export interface Allocation {
   id: string;
   cost_id: string;
   allocated_amount: number;
+  allocation_quantity?: number;
+  unit_cost_at_allocation?: number;
   created_at: string;
 }
 
@@ -116,19 +162,21 @@ export interface SaleDetail {
 }
 
 export interface SaleDetailResponse {
-  sale: SaleDetail['sale'];
+  sale: SaleDetail["sale"];
   allocations: Allocation[];
   allocated_cost_total: number;
   profit: number;
   profit_margin: number;
 }
 
-export async function getSaleDetail(saleId: string): Promise<SaleDetailResponse> {
-  console.log('[SALES] FETCHING SALE DETAIL:', saleId);
+export async function getSaleDetail(
+  saleId: string,
+): Promise<SaleDetailResponse> {
+  console.log("[SALES] FETCHING SALE DETAIL:", saleId);
 
   const response = await api.get<SaleDetailResponse>(`/sales/${saleId}`);
 
-  console.log('[SALES] SALE DETAIL RESPONSE:', response);
+  console.log("[SALES] SALE DETAIL RESPONSE:", response);
 
   return response;
 }
@@ -157,14 +205,17 @@ export interface SalesSummaryResponse {
   summary: SalesSummary;
 }
 
-export async function getSalesSummary(from: string, to: string): Promise<SalesSummaryResponse> {
-  console.log('[SALES] FETCHING SALES SUMMARY:', { from, to });
+export async function getSalesSummary(
+  from: string,
+  to: string,
+): Promise<SalesSummaryResponse> {
+  console.log("[SALES] FETCHING SALES SUMMARY:", { from, to });
 
-  const response = await api.get<SalesSummaryResponse>('/sales/summary', {
+  const response = await api.get<SalesSummaryResponse>("/sales/summary", {
     params: { from, to },
   });
 
-  console.log('[SALES] SUMMARY RESPONSE:', response);
+  console.log("[SALES] SUMMARY RESPONSE:", response);
 
   return response;
 }
@@ -175,11 +226,11 @@ export interface RefundResponse {
 }
 
 export async function refundSale(saleId: string): Promise<RefundResponse> {
-  console.log('[SALES] REFUNDING SALE:', saleId);
+  console.log("[SALES] REFUNDING SALE:", saleId);
 
   const response = await api.post<RefundResponse>(`/sales/${saleId}/refund`);
 
-  console.log('[SALES] REFUND RESPONSE:', response);
+  console.log("[SALES] REFUND RESPONSE:", response);
 
   return response;
 }
