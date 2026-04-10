@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from './contexts/AuthContext';
 
 export default function LoginScreen() {
-  const { login, isLoading, error, fieldErrors, clearError } = useAuth();
+  const { login, loginLoading, isLoading, error, fieldErrors, clearError } = useAuth();
   const router = useRouter();
   const colorScheme = useColorScheme();
   const [email, setEmail] = useState('');
@@ -134,9 +134,9 @@ export default function LoginScreen() {
                 </View>
               </View>
 
-              <Pressable style={styles.loginButton} onPress={handleLogin} disabled={isLoading}>
-                {isLoading ? (
-                  <ActivityIndicator color="#1a1a1a" size="small" style={styles.loadingIndicator} />
+              <Pressable style={styles.loginButton} onPress={handleLogin} disabled={loginLoading}>
+                {loginLoading ? (
+                  <ActivityIndicator color="#1a1a1a" size="large" />
                 ) : (
                   <>
                     <Text style={styles.loginButtonText}>Login</Text>

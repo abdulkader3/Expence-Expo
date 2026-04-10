@@ -19,6 +19,7 @@ export default function SignupScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [generalError, setGeneralError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const isDark = colorScheme === 'dark';
 
@@ -29,6 +30,7 @@ export default function SignupScreen() {
     textSecondary: isDark ? '#94a3b8' : '#64748b',
     textMuted: isDark ? '#525252' : '#a3a3a3',
     primary: '#5bee2b',
+    success: '#22c55e',
     inputBg: isDark ? '#1e293b' : '#f6f8f6',
     border: isDark ? '#1e293b' : '#f1f5f9',
     checkboxBorder: isDark ? '#475569' : '#cbd5e1',
@@ -97,13 +99,17 @@ const payload: RegisterPayload = {
     
     console.log("[SCREEN] Calling createUser with payload:", payload);
     
-    const result = await createUser(payload);
+const result = await createUser(payload);
+       
+      console.log("[SCREEN] Registration result:", result);
       
-      console.log("[SCREEN] Login result:", result);
-      
-      if (result.success) {
-        console.log("[SCREEN] Registration SUCCESS, navigating to home");
-        router.replace('/');
+      if (result && result.user && result.tokens) {
+        console.log("[SCREEN] Registration SUCCESS, showing success message");
+        setSuccessMessage('Account created successfully! Please login.');
+        
+        setTimeout(() => {
+          router.replace('/login');
+        }, 1000);
       } else {
         console.log("[SCREEN] Registration FAILED:", result.error);
         
@@ -161,6 +167,12 @@ const payload: RegisterPayload = {
               {generalError ? (
                 <View style={[styles.errorBanner, { backgroundColor: colors.error + '20' }]}>
                   <Text style={[styles.errorBannerText, { color: colors.error }]}>{generalError}</Text>
+                </View>
+              ) : null}
+
+              {successMessage ? (
+                <View style={[styles.successBanner, { backgroundColor: colors.success + '20' }]}>
+                  <Text style={[styles.successBannerText, { color: colors.success }]}>{successMessage}</Text>
                 </View>
               ) : null}
 
@@ -332,6 +344,8 @@ const styles = StyleSheet.create({
   card: { borderRadius: 24, padding: 32, borderWidth: 1 },
   errorBanner: { padding: 12, borderRadius: 8, marginBottom: 16 },
   errorBannerText: { fontSize: 14, fontWeight: '500', textAlign: 'center' },
+  successBanner: { padding: 12, borderRadius: 8, marginBottom: 16 },
+  successBannerText: { fontSize: 14, fontWeight: '500', textAlign: 'center' },
   form: { gap: 24 },
   inputGroup: { gap: 8 },
   label: { fontSize: 14, fontWeight: '600', marginLeft: 4 },

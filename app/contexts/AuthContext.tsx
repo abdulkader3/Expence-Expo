@@ -5,6 +5,7 @@ import { createUser, RegisterPayload, loginUser, LoginPayload, handleAuthError, 
 export interface AuthState {
   isLoggedIn: boolean;
   isLoading: boolean;
+  loginLoading: boolean;
   user: UserData | null;
   error: string;
   fieldErrors: { field: string; message: string }[];
@@ -12,6 +13,7 @@ export interface AuthState {
 
 export interface AuthContextType extends AuthState {
   login: (payload: LoginPayload) => Promise<{ success: boolean; error?: string; fieldErrors?: { field: string; message: string }[] }>;
+  loginLoading: boolean;
   logout: () => Promise<void>;
   clearError: () => void;
   refreshUser: () => Promise<void>;
@@ -23,6 +25,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export default function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [loginLoading, setLoginLoading] = useState(false);
   const [user, setUser] = useState<UserData | null>(null);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<{ field: string; message: string }[]>([]);
@@ -56,6 +59,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (payload: LoginPayload) => {
     clearError();
+    setLoginLoading(true);
     
     try {
       console.log("[CONTEXT] Calling loginUser...");
@@ -77,6 +81,8 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         error: handled.message,
         fieldErrors: handled.fieldErrors,
       };
+    } finally {
+      setLoginLoading(false);
     }
   }, []);
 
@@ -157,6 +163,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={{
       isLoggedIn: isLoggedIn,
       isLoading: isLoading,
+      loginLoading: loginLoading,
       user: user,
       login: login,
       logout: logout,
