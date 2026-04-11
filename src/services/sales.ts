@@ -234,3 +234,88 @@ export async function refundSale(saleId: string): Promise<RefundResponse> {
 
   return response;
 }
+
+export interface DeleteSaleResponse {
+  success: boolean;
+  message: string;
+  deleted_sale: {
+    id: string;
+    product_name: string;
+    sale_total: number;
+    deleted_at: string;
+  };
+  allocations_reversed: number;
+  audit_log: Array<{
+    allocation_id: string;
+    cost_id: string | null;
+    allocated_amount: number;
+    allocation_quantity: number;
+    reversed_at: string;
+  }>;
+}
+
+export async function deleteSale(saleId: string): Promise<DeleteSaleResponse> {
+  console.log("[SALES] DELETING SALE:", saleId);
+
+  const response = await api.delete<DeleteSaleResponse>(`/sales/${saleId}`);
+
+  console.log("[SALES] DELETE RESPONSE:", response);
+
+  return response;
+}
+
+export interface DeletedSale {
+  id: string;
+  product_name: string;
+  quantity: number;
+  sale_total: number;
+  currency: string;
+  payment_method: string;
+  bank_name: string | null;
+  cash_holder: string | null;
+  date: string;
+  deleted_at: string;
+  deleted_by: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
+  audit_log: Array<{
+    deleted_at: string;
+    allocations_reversed: number;
+    reversed_allocation_details: Array<{
+      allocation_id: string;
+      cost_id: string | null;
+      allocated_amount: number;
+      allocation_quantity: number;
+      reversed_at: string;
+    }>;
+  }>;
+}
+
+export interface DeletedSalesResponse {
+  data: DeletedSale[];
+  meta: {
+    total: number;
+    page: number;
+    per_page: number;
+  };
+}
+
+export async function getDeletedSales(
+  params: { page?: number; per_page?: number } = {},
+): Promise<DeletedSalesResponse> {
+  console.log("[SALES] FETCHING DELETED SALES:", params);
+
+  const queryParams: Record<string, string> = {};
+  if (params.page) queryParams.page = String(params.page);
+  if (params.per_page) queryParams.per_page = String(params.per_page);
+
+  const response = await api.get<DeletedSalesResponse>("/sales/deleted", {
+    params: queryParams,
+  });
+
+  console.log("[SALES] DELETED SALES RESPONSE:", response);
+
+  return response;
+}

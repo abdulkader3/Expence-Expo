@@ -24,6 +24,7 @@ import {
   getSales,
   getSalesSummary,
   refundSale,
+  deleteSale,
   Bank,
   Sale,
   SalesSummary,
@@ -31,6 +32,7 @@ import {
 import {
   createCostEntry,
   getCostEntries,
+  deleteCostEntry,
   CostEntry,
 } from "../src/services/costEntries";
 import { createAllocation } from "../src/services/allocations";
@@ -413,6 +415,62 @@ export default function BudgetScreen() {
     );
   };
 
+  const handleDeleteSale = async (sale: Sale) => {
+    Alert.alert(
+      "Delete Sale",
+      `Are you sure you want to delete "${sale.product_name}"? This will also reverse ${(sale as any).allocated_count || 0} allocation(s). This action cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const response = await deleteSale(sale.id);
+              Alert.alert(
+                "Success",
+                `Sale deleted. ${response.allocations_reversed} allocation(s) reversed.`,
+              );
+              loadSales();
+              loadCostEntries();
+              loadSummary();
+            } catch (error: any) {
+              Alert.alert("Error", error.message || "Failed to delete sale");
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleDeleteCostEntry = async (cost: CostEntry) => {
+    Alert.alert(
+      "Delete Cost Entry",
+      `Are you sure you want to delete "${cost.description}"? This will also reverse ${(cost as any).allocated_count || 0} allocation(s). This action cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const response = await deleteCostEntry(cost.id);
+              Alert.alert(
+                "Success",
+                `Cost entry deleted. ${response.allocations_reversed} allocation(s) reversed.`,
+              );
+              loadCostEntries();
+              loadSales();
+              loadSummary();
+            } catch (error: any) {
+              Alert.alert("Error", error.message || "Failed to delete cost entry");
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const handleOpenAllocationModal = (sale: Sale) => {
     setSelectedSaleForAllocation(sale);
     setSelectedCostForAllocation(null);
@@ -510,7 +568,11 @@ export default function BudgetScreen() {
   );
 
   const renderSaleItem = ({ item }: { item: Sale }) => (
-    <View style={[styles.card, { backgroundColor: colors.cardBg }]}>
+    <Pressable
+      onLongPress={() => handleDeleteSale(item)}
+      delayLongPress={500}
+      style={[styles.card, { backgroundColor: colors.cardBg }]}
+    >
       <View style={styles.cardInfo}>
         <Text style={[styles.cardTitle, { color: colors.text }]}>
           {item.product_name}
@@ -582,7 +644,7 @@ export default function BudgetScreen() {
           </View>
         )}
       </View>
-    </View>
+    </Pressable>
   );
 
   const renderCostItem = ({ item }: { item: CostEntry }) => {
@@ -592,7 +654,11 @@ export default function BudgetScreen() {
       item.remaining_amount ?? item.total_cost - (item.allocated_amount || 0);
 
     return (
-      <View style={[styles.card, { backgroundColor: colors.cardBg }]}>
+      <Pressable
+        onLongPress={() => handleDeleteCostEntry(item)}
+        delayLongPress={500}
+        style={[styles.card, { backgroundColor: colors.cardBg }]}
+      >
         <View style={styles.cardInfo}>
           <Text style={[styles.cardTitle, { color: colors.text }]}>
             {item.description}
@@ -627,7 +693,7 @@ export default function BudgetScreen() {
             </Text>
           )}
         </View>
-      </View>
+      </Pressable>
     );
   };
 
@@ -766,6 +832,12 @@ export default function BudgetScreen() {
           <MaterialIcons name="arrow-back" size={24} color={colors.text} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Budget</Text>
+        <Pressable
+          style={[styles.headerButton, { backgroundColor: colors.cardBg }]}
+          onPress={() => router.push("/deleted-items")}
+        >
+          <MaterialIcons name="delete-sweep" size={22} color={colors.error} />
+        </Pressable>
         <Pressable
           style={[styles.addButtonSmall, { backgroundColor: colors.primary }]}
           onPress={() =>
@@ -2164,15 +2236,76 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 12,
   },
+  cardExpanded: {
+    padding: 20,
+  },
+  cardNormal: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
   cardInfo: { flex: 1 },
   cardTitle: { fontSize: 16, fontWeight: "600", marginBottom: 6 },
+  cardTitleExpanded: { fontSize: 18, fontWeight: "700", marginBottom: 4 },
   cardDetails: { flexDirection: "row", alignItems: "center", gap: 12 },
   cardSubtitle: { fontSize: 13 },
+  cardSubtitleExpanded: { fontSize: 14 },
   badge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
   badgeText: { fontSize: 11, fontWeight: "600" },
   cardAmount: { alignItems: "flex-end" },
   amountText: { fontSize: 16, fontWeight: "700", marginBottom: 4 },
+  amountTextExpanded: { fontSize: 20, fontWeight: "700" },
   dateText: { fontSize: 11 },
+  expandedHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 16,
+  },
+  expandedDetails: {
+    paddingTop: 12,
+    borderTopWidth: 1,
+    gap: 10,
+  },
+  detailRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  detailText: {
+    fontSize: 13,
+  },
+  expandedActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    gap: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  cancelButtonText: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  deleteButton: {
+    flex: 1,
+    flexDirection: "row",
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  deleteButtonText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#ffffff",
+  },
   emptyContainer: {
     flex: 1,
     alignItems: "center",
