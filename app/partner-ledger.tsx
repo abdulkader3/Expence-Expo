@@ -98,7 +98,7 @@ export default function PartnerLedgerScreen() {
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      allowsEditing: Platform.OS === 'ios',
+      allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
     });
