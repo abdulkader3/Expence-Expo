@@ -92,7 +92,7 @@ async function requestWithAuthRetry<T>(
   const timeout = isFormData ? UPLOAD_TIMEOUT : REQUEST_TIMEOUT;
 
   const headers: HeadersInit = {
-    "Content-Type": "application/json",
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...fetchOptions.headers,
   };
