@@ -87,6 +87,13 @@ export default function DeletedItemsScreen() {
   };
 
   const formatCurrency = (amount: number, currency: string) => {
+    if (currency === "BDT") {
+      const formatted = new Intl.NumberFormat("en-BD", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }).format(amount);
+      return `৳${formatted}`;
+    }
     return new Intl.NumberFormat("en-BD", {
       style: "currency",
       currency,

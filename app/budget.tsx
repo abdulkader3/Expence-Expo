@@ -554,6 +554,13 @@ export default function BudgetScreen() {
   };
 
   const formatCurrency = (amount: number, currency: string) => {
+    if (currency === "BDT") {
+      const formatted = new Intl.NumberFormat("en-BD", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }).format(amount);
+      return `৳${formatted}`;
+    }
     return new Intl.NumberFormat("en-BD", {
       style: "currency",
       currency,
@@ -2252,15 +2259,17 @@ const styles = StyleSheet.create({
   datePickerText: { flex: 1, marginLeft: 10, fontSize: 14, fontWeight: "600" },
   summaryGrid: {
     flexDirection: "row",
-    gap: 12,
+    gap: 10,
     paddingHorizontal: 16,
     marginTop: 12,
   },
   summaryCard: {
     flex: 1,
-    padding: Platform.select({ ios: 16, android: 12 }),
+    padding: Platform.select({ ios: 12, android: 8 }),
     borderRadius: 12,
     marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.1)",
   },
   summaryLabel: {
     fontSize: Platform.select({ ios: 12, android: 10 }),
