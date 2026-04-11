@@ -17,6 +17,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { useState, useEffect, useCallback } from "react";
 import {
   createSale,
@@ -567,85 +568,130 @@ export default function BudgetScreen() {
     0,
   );
 
+  const handleSaleLongPress = (item: Sale) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert(
+      item.product_name,
+      "Choose an action",
+      [
+        {
+          text: "Allocate",
+          onPress: () => handleOpenAllocationModal(item),
+        },
+        {
+          text: "Refund",
+          onPress: () => handleRefund(item),
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => handleDeleteSale(item),
+        },
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+      ]
+    );
+  };
+
   const renderSaleItem = ({ item }: { item: Sale }) => (
     <Pressable
-      onLongPress={() => handleDeleteSale(item)}
-      delayLongPress={500}
       style={[styles.card, { backgroundColor: colors.cardBg }]}
+      onLongPress={() => handleSaleLongPress(item)}
     >
-      <View style={styles.cardInfo}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>
-          {item.product_name}
-        </Text>
-        <View style={styles.cardDetails}>
-          <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
-            Qty: {item.quantity}
+        <View style={styles.cardInfo}>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>
+            {item.product_name}
           </Text>
-          <View
-            style={[
-              styles.badge,
-              {
-                backgroundColor:
-                  item.payment_method === "cash"
-                    ? colors.primary + "20"
-                    : "#3b82f620",
-              },
-            ]}
-          >
-            <Text
+          <View style={styles.cardDetails}>
+            <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
+              Qty: {item.quantity}
+            </Text>
+            <View
               style={[
-                styles.badgeText,
+                styles.badge,
                 {
-                  color:
-                    item.payment_method === "cash" ? colors.primary : "#3b82f6",
+                  backgroundColor:
+                    item.payment_method === "cash"
+                      ? colors.primary + "20"
+                      : "#3b82f620",
                 },
               ]}
             >
-              {item.payment_method === "cash" ? "Cash" : item.bank_name}
-            </Text>
+              <Text
+                style={[
+                  styles.badgeText,
+                  {
+                    color:
+                      item.payment_method === "cash" ? colors.primary : "#3b82f6",
+                  },
+                ]}
+              >
+                {item.payment_method === "cash" ? "Cash" : item.bank_name}
+              </Text>
+            </View>
           </View>
         </View>
-      </View>
-      <View style={styles.cardAmount}>
-        <Text style={[styles.amountText, { color: colors.success }]}>
-          {formatCurrency(item.sale_total, item.currency)}
-        </Text>
-        <Text style={[styles.dateText, { color: colors.textSecondary }]}>
-          {formatDate(item.date)}
-        </Text>
-        {(item.status === "completed" || !item.status) && (
-          <View style={{ flexDirection: "row", gap: 8, marginTop: 6 }}>
-            <Pressable
-              style={[
-                styles.actionButton,
-                { backgroundColor: colors.primary + "20" },
-              ]}
-              onPress={() => handleOpenAllocationModal(item)}
-            >
-              <MaterialIcons name="link" size={14} color={colors.primary} />
-              <Text
-                style={[styles.actionButtonText, { color: colors.primary }]}
+        <View style={styles.cardAmount}>
+          <Text style={[styles.amountText, { color: colors.success }]}>
+            {formatCurrency(item.sale_total, item.currency)}
+          </Text>
+          <Text style={[styles.dateText, { color: colors.textSecondary }]}>
+            {formatDate(item.date)}
+          </Text>
+          {(item.status === "completed" || !item.status) && (
+            <View style={{ flexDirection: "row", gap: 8, marginTop: 6 }}>
+              <Pressable
+                style={[
+                  styles.actionButton,
+                  { backgroundColor: colors.primary + "20" },
+                ]}
+                onPress={() => handleOpenAllocationModal(item)}
               >
-                Allocate
-              </Text>
-            </Pressable>
-            <Pressable
-              style={[
-                styles.actionButton,
-                { backgroundColor: colors.error + "20" },
-              ]}
-              onPress={() => handleRefund(item)}
-            >
-              <MaterialIcons name="undo" size={14} color={colors.error} />
-              <Text style={[styles.actionButtonText, { color: colors.error }]}>
-                Refund
-              </Text>
-            </Pressable>
-          </View>
-        )}
-      </View>
-    </Pressable>
+                <MaterialIcons name="link" size={14} color={colors.primary} />
+                <Text
+                  style={[styles.actionButtonText, { color: colors.primary }]}
+                >
+                  Allocate
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[
+                  styles.actionButton,
+                  { backgroundColor: colors.error + "20" },
+                ]}
+                onPress={() => handleRefund(item)}
+              >
+                <MaterialIcons name="undo" size={14} color={colors.error} />
+                <Text style={[styles.actionButtonText, { color: colors.error }]}>
+                  Refund
+                </Text>
+              </Pressable>
+            </View>
+          )}
+        </View>
+      </Pressable>
   );
+
+  const handleCostLongPress = (item: CostEntry) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert(
+      item.description,
+      "Choose an action",
+      [
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => handleDeleteCostEntry(item),
+        },
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+      ]
+    );
+  };
 
   const renderCostItem = ({ item }: { item: CostEntry }) => {
     const remainingQty =
@@ -655,45 +701,44 @@ export default function BudgetScreen() {
 
     return (
       <Pressable
-        onLongPress={() => handleDeleteCostEntry(item)}
-        delayLongPress={500}
         style={[styles.card, { backgroundColor: colors.cardBg }]}
+        onLongPress={() => handleCostLongPress(item)}
       >
-        <View style={styles.cardInfo}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>
-            {item.description}
-          </Text>
-          <View style={styles.cardDetails}>
-            <View
-              style={[styles.badge, { backgroundColor: colors.error + "20" }]}
-            >
-              <Text style={[styles.badgeText, { color: colors.error }]}>
-                {item.quantity} {item.quantity === 1 ? "unit" : "units"}
-              </Text>
+          <View style={styles.cardInfo}>
+            <Text style={[styles.cardTitle, { color: colors.text }]}>
+              {item.description}
+            </Text>
+            <View style={styles.cardDetails}>
+              <View
+                style={[styles.badge, { backgroundColor: colors.error + "20" }]}
+              >
+                <Text style={[styles.badgeText, { color: colors.error }]}>
+                  {item.quantity} {item.quantity === 1 ? "unit" : "units"}
+                </Text>
+              </View>
+              {(item.allocated_quantity || 0) > 0 && (
+                <Text style={{ color: colors.textSecondary, fontSize: 11 }}>
+                  {item.allocated_quantity} allocated
+                </Text>
+              )}
             </View>
-            {(item.allocated_quantity || 0) > 0 && (
-              <Text style={{ color: colors.textSecondary, fontSize: 11 }}>
-                {item.allocated_quantity} allocated
+          </View>
+          <View style={styles.cardAmount}>
+            <Text style={[styles.amountText, { color: colors.error }]}>
+              {formatCurrency(item.total_cost, item.currency)}
+            </Text>
+            <Text style={[styles.dateText, { color: colors.textSecondary }]}>
+              {formatDate(item.date)}
+            </Text>
+            {remainingQty > 0 && (
+              <Text
+                style={[styles.dateText, { color: colors.primary, fontSize: 10 }]}
+              >
+                {remainingQty} remaining
               </Text>
             )}
           </View>
-        </View>
-        <View style={styles.cardAmount}>
-          <Text style={[styles.amountText, { color: colors.error }]}>
-            {formatCurrency(item.total_cost, item.currency)}
-          </Text>
-          <Text style={[styles.dateText, { color: colors.textSecondary }]}>
-            {formatDate(item.date)}
-          </Text>
-          {remainingQty > 0 && (
-            <Text
-              style={[styles.dateText, { color: colors.primary, fontSize: 10 }]}
-            >
-              {remainingQty} remaining
-            </Text>
-          )}
-        </View>
-      </Pressable>
+        </Pressable>
     );
   };
 
@@ -916,32 +961,32 @@ export default function BudgetScreen() {
           renderItem={renderCostItem}
           keyExtractor={(item) => item.id}
           ListHeaderComponent={
-            <View style={{ paddingTop: 16 }}>
-              <View
-                style={[styles.summaryCard, { backgroundColor: colors.cardBg }]}
+          <View style={{ paddingTop: 16 }}>
+            <View
+              style={[styles.summaryCard, { backgroundColor: colors.cardBg }]}
+            >
+              <Text
+                style={[styles.summaryLabel, { color: colors.textSecondary }]}
               >
-                <Text
-                  style={[styles.summaryLabel, { color: colors.textSecondary }]}
-                >
-                  Total Costs
-                </Text>
-                <Text style={[styles.summaryAmount, { color: colors.error }]}>
-                  {formatCurrency(totalCosts, "BDT")}
-                </Text>
-                <Text
-                  style={[
-                    styles.summarySubtext,
-                    { color: colors.textSecondary },
-                  ]}
-                >
-                  {costEntries.length} entries
-                </Text>
-              </View>
+                Total Costs
+              </Text>
+              <Text style={[styles.summaryAmount, { color: colors.error }]}>
+                {formatCurrency(totalCosts, "BDT")}
+              </Text>
+              <Text
+                style={[
+                  styles.summarySubtext,
+                  { color: colors.textSecondary },
+                ]}
+              >
+                {costEntries.length} entries
+              </Text>
             </View>
-          }
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-        />
+          </View>
+        }
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+      />
       )}
 
       <Modal
