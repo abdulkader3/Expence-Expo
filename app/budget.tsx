@@ -2259,8 +2259,8 @@ const styles = StyleSheet.create({
   datePickerText: { flex: 1, marginLeft: 10, fontSize: 14, fontWeight: "600" },
   summaryGrid: {
     flexDirection: "row",
-    gap: 10,
-    paddingHorizontal: 16,
+    gap: 8,
+    paddingHorizontal: 5,
     marginTop: 12,
   },
   summaryCard: {
